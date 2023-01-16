@@ -1,0 +1,11 @@
+Package: gautils
+Type: Package
+Title: An R package for quick microbiome data wrangle and visualization
+Version: 0.1.0
+Author: Giacomo Antonello
+Maintainer: Giacomo Antonello <giacomo.antonello@eurac.edu>
+Description: This package is a collection of function I found useful along my PhD. It makes some plots quick (microbiome scatterplots, boxplots, beta diversity MDS (eg: PCoA), and so on. Aside from these, there are some packages to extract information from some differential abundance tools, in particular "DESeq2" and "corncob", which are slightly "mechanic".
+License: MIT
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.2.3
