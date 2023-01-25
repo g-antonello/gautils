@@ -5,8 +5,6 @@ Version: 0.1.0
 Author: Giacomo Antonello
 Maintainer: Giacomo Antonello <giacomo.antonello@eurac.edu>
 Description: This package is a collection of function I found useful along my PhD. It makes some plots quick (microbiome scatterplots, boxplots, beta diversity MDS (eg: PCoA), and so on. Aside from these, there are some packages to extract information from some differential abundance tools, in particular "DESeq2" and "corncob", which are slightly "mechanic".
-Depends: tidyverse (>= 1.3.2), phyloseq (>= 1.4.2), microbiome(>= 1.20), speedyseq (>= 0.5.3.90)
-Imports: phyloseq, microbiome, tidyverse, kableExtra, purrr, reshape2, stringr, readr, magrittr, tidyr, speedyseq, lubridate, RNOmni, biomformat, doParallel, dplyr, parallelDist, pheatmap
 License: MIT
 Encoding: UTF-8
 LazyData: true
