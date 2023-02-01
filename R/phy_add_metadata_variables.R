@@ -56,7 +56,7 @@ phy_add_metadata_variables <- function(physeq, df, by, verbose = FALSE){
     df<- filter(df, eval(parse(text = by)) %in% intersect_names)
   }
 
-  new_meta <- left_join(tmp_meta, df, by = by, sort = FALSE, all.x = TRUE) %>%
+  new_meta <- left_join(tmp_meta, df, by = by) %>%
     column_to_rownames("sampNamestmp")
 
   physeq_filt <- prune_samples(samples = sample_names(physeq) %in% rownames(new_meta), x = physeq)
