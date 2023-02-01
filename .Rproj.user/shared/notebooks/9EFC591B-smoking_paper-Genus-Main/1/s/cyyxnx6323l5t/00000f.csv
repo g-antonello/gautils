@@ -1,0 +1,4 @@
+"0",""
+"0","chrismb_phy_core_genus <- speedyseq::tax_glom(chrismb_phy_core, ""Genus"")"
+"0","taxa_names(chrismb_phy_core_genus) <- chrismb_phy_core_genus@tax_table@.Data[,6]"
+"0",""

@@ -1,0 +1,1 @@
+"0","DT::datatable(meta(chrismb_phy) %>% select(smoking_exposure_ga, current_tobacco_g_per_day, years_since_quit.OR.reduced_smoking, smoking_habit_quit.OR.reduced_years, smoking_detailed))"

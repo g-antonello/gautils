@@ -8,6 +8,8 @@
 #' @param taxon_lvls_added A \code{character} with the taxonomic levels to add to each results \code{data.frame}
 #' @param sort_p.val a \code{logical} saying whether you want the `padj` column sorted or not
 #'
+#' @importFrom DESeq2 results
+#'
 #' @return A \code{list} of pairwise contrasts based on the factor levels of the \code{trait} variable
 #'
 #' @export
@@ -51,8 +53,6 @@ deseq_results_into_list <- function(deseq_results,
                                     ){
 
   combin <- (t(combn(levels(deseq_results[[trait]]),2)))
-
-  library(DESeq2)
 
   results_list <- lapply(1:nrow(combin), function(i) results(deseq_results, contrast =c(trait, combin[i,1], combin[i,2])) %>%
            as.data.frame() %>%

@@ -14,5 +14,13 @@
 #' qklook(iris, 5,5)
 
 qklook <- function(x, nrows=8, ncols=8){
+
+  if(nrows(x) < nrows){
+    nrows <- nrows(x)
+  }
+  if(ncols(x) < ncols){
+    ncols <- ncols(x)
+  }
+
   return(x[1:nrows, 1:ncols])
 }

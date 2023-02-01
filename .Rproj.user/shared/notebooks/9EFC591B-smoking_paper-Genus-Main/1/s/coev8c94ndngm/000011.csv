@@ -1,0 +1,5 @@
+"0",""
+"0","# make an indicative plot of how many taxonomies are lost during filtering"
+"0",""
+"0","# tmp[3:nrow(tmp),] %>% as.data.frame() %>% rownames_to_column(""TaxRank"") %>% pivot_longer(cols = c(""Unfiltered"", ""Filtered"")) %>% mutate(TaxRank = factor(TaxRank, levels =c(""ASV"", ""Species"", ""Genus"", ""Family"", ""Order"", ""Class"", ""Phylum"", ""Kingdom"")), value = as.double(value)) %>% ggplot(aes(x = TaxRank, y = log(value), fill = name))+ geom_bar(stat = ""identity"", position = ""dodge"")"
+"0",""

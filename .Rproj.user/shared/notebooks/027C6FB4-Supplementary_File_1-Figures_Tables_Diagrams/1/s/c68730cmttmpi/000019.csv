@@ -1,0 +1,11 @@
+"0","phy_add_metadata_variables(physeq = phy_Q1, df = tmp, by = ""aid_michigan"") 
+"
+"1","[1m[33mError[39m in `left_join()`:[22m
+[38;5;232m[33m![38;5;232m `...` must be empty.
+[31m✖[38;5;232m Problematic arguments:
+[36m•[38;5;232m sort = FALSE
+[36m•[38;5;232m all.x = TRUE[39m
+Backtrace:
+[90m 1. [39m[1mgautils[22m::phy_add_metadata_variables(...)
+[90m 7. [39m[1m[94mdplyr:::left_join.data.frame([39m[22mtmp_meta, df, by = by, sort = FALSE, all.x = TRUE[1m[94m)[39m[22m
+"

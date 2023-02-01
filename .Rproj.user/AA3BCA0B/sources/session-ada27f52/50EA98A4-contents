@@ -1,0 +1,351 @@
+---
+title: "Smoking Paper Diff abund Consensus"
+author: "Giacomo Antonello"
+date: "2023-02-01"
+output: pdf_document
+---
+
+
+```{r, echo=FALSE}
+knitr::opts_chunk$set(
+  cache = FALSE,
+  concordance = TRUE,
+  prompt = TRUE, # fig.width=5, fig.height=5,
+  out.width = "100%",
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  error = TRUE,
+  tidy = FALSE,
+  comment = "")
+
+```
+
+# Data preparation
+
+```{r library setup}
+# from Bioconductor (install by running: BiocManager::install("x") | x = name of the package)
+# BiocManager::install(c("DESeq2", "phyloseq", "microbiome"))
+
+
+# remotes::install_github("g-antonello/gautils")
+# remotes::install_github("mikemc/speedyseq")
+
+library(gautils)
+
+#personal functions
+
+# graphics packages
+library(ggpubr)
+library(magrittr)
+# my functions
+source("my_personal_functions.R")
+#github functions
+# devtools::install_github("bryandmartin/corncob")
+#devtools::install_github("gaospecial/ggvenn")
+library(speedyseq)
+theme_set(theme_light())
+
+```
+
+## Load microbiome data
+
+```{r, echo= FALSE}
+
+chrismb_phy <- readRDS("../input_data/05_chrismb_ONLY_NewBatch_11_2021.rds")
+
+```
+
+## Smoking variables' curation
+
+```{r}
+###############################
+
+levels(chrismb_phy@sam_data$smoking_exposure_ga) <- c("Current", "Former", "Never")
+
+chrismb_phy@sam_data$smoking_exposure_ga <- factor(chrismb_phy@sam_data$smoking_exposure_ga, levels = c("Never", "Former", "Current"))
+
+###############################
+
+levels(chrismb_phy@sam_data$smoking_habits_rm) <- c("Never", "Former", "Current (R)", "Current (NR)")
+
+chrismb_phy <- speedyseq::rename_sample_data(chrismb_phy, years_since_quit.OR.reduced_smoking = years_since_quit_smoking)
+
+```
+
+```{r}
+
+### tobacco g per day (bin 5)
+
+
+# replace NAs with zeros (arbitrary, if a person can't answer how much, maybe it's very little)
+chrismb_phy@sam_data$current_tobacco_g_per_day <- ifelse(is.na(chrismb_phy@sam_data$current_tobacco_g_per_day), 0, chrismb_phy@sam_data$current_tobacco_g_per_day)
+
+# categorized 5 by 5 
+chrismb_phy@sam_data$current_tobacco_g_per_day_bin5cat <- cut(chrismb_phy@sam_data$current_tobacco_g_per_day, 
+                                                              breaks = c(0,0.5,2,5,10,15,20,25,30,60), 
+                                                              include.lowest = TRUE)
+
+# binned 2 by 2 continuous
+chrismb_phy@sam_data$current_tobacco_g_per_day_bin5cont <- cut(
+  chrismb_phy@sam_data$current_tobacco_g_per_day, 
+  breaks = c(0,0.5,2,5,10,15,20,25,30,60), 
+  labels = c(0.5,2,5,10,15,20,25,30,60), 
+  include.lowest = TRUE
+) %>% 
+  as.character() %>% 
+  as.double()
+
+```
+
+
+
+```{r}
+
+### tobacco g per day (bin 2)
+
+# categorized 2 by 2
+
+chrismb_phy@sam_data$current_tobacco_g_per_day_bin2cat <- cut(chrismb_phy@sam_data$current_tobacco_g_per_day, c(0,0.5,seq(2,30, 2), 60), include.lowest = TRUE)
+
+# 2 by 2 continuous
+chrismb_phy@sam_data$current_tobacco_g_per_day_bin2cont <- cut(
+  chrismb_phy@sam_data$current_tobacco_g_per_day, 
+  breaks = c(0,0.5,seq(2,30, 2), 60), labels = c(0.5,seq(2,30, 2), 60), 
+  include.lowest = TRUE) %>% 
+  as.character() %>% 
+  as.double()
+
+```
+
+
+
+```{r, message=FALSE, warning=FALSE}
+
+### Specify how many years ago Former smokers quit or reduced
+# Definitions for both **continuous** and **binned (2 by 2)** variables. This will come in handy in the years-since-quitting analysis
+
+chrismb_phy <- meta(chrismb_phy) %>% 
+  mutate(smoking_habit_quit.OR.reduced_years = case_when(
+    smoking_exposure_ga == "Former" & is.na(years_since_quit.OR.reduced_smoking) ~ "Former_unknown",
+    smoking_exposure_ga == "Former" & years_since_quit.OR.reduced_smoking <= 5 ~ paste(smoking_exposure_ga, years_since_quit.OR.reduced_smoking, sep = "_"),
+    smoking_exposure_ga == "Former" & years_since_quit.OR.reduced_smoking > 5 ~ paste(smoking_exposure_ga, "6+", sep = "_"),
+    smoking_exposure_ga == "Never" | smoking_exposure_ga == "Current" ~ as.character(smoking_exposure_ga)
+  ),
+  
+  smoking_habit_quit.OR.reduced_years_binned = case_when(
+    smoking_exposure_ga == "Former" &
+      parse_number(smoking_habit_quit.OR.reduced_years) <= 1 ~ "Former [0,1]",
+    smoking_exposure_ga == "Former" &
+      between(parse_number(smoking_habit_quit.OR.reduced_years), 2, 3) ~ "Former [2,3]",
+    smoking_exposure_ga == "Former" &
+      between(parse_number(smoking_habit_quit.OR.reduced_years), 4, 5) ~ "Former [4,5]",
+    smoking_exposure_ga == "Former" &
+      parse_number(smoking_habit_quit.OR.reduced_years) > 5 ~
+      "Former 6+",
+    smoking_exposure_ga == "Never" |
+      smoking_exposure_ga == "Current" ~ as.character(smoking_exposure_ga),
+    smoking_habit_quit.OR.reduced_years == "Former_unknown" ~ "Former_unknown"
+  )
+  
+  ) %>% 
+  phy_substitute_metadata(chrismb_phy, .)
+
+chrismb_phy@sam_data$years_since_quit.OR.reduced_smoking_binned <- cut(chrismb_phy@sam_data$years_since_quit.OR.reduced_smoking, c(0,1,2,3,5,10,61))
+
+```
+
+### Ultimate smoking variable for plots: "smoking_detailed"
+
+the idea is to specify current_dosage, former_years, and never, so we can play around with plots using one single variable
+
+```{r}
+
+chrismb_phy@sam_data$smoking_detailed <-
+  ifelse(
+    chrismb_phy@sam_data$smoking_exposure_ga == "Current",
+    paste0(
+      "Current ",
+      chrismb_phy@sam_data$current_tobacco_g_per_day_bin5cat,
+      " g"
+    ),
+    ifelse(
+      chrismb_phy@sam_data$smoking_exposure_ga == "Former",
+      paste0(
+        "Former ", chrismb_phy@sam_data$years_since_quit.OR.reduced_smoking_binned, " y"
+      ),
+      "Never"
+    )
+  )
+
+
+nice_order_current <- sort(grep("Current", unique(chrismb_phy@sam_data$smoking_detailed), value = TRUE))[c(9,1,4,8,2,3,5,6,7)] %>% rev()
+
+nice_order_former <- sort(grep("Former", unique(chrismb_phy@sam_data$smoking_detailed), value = TRUE))[c(7,1,2,4,5,6,3)]
+
+final_levels <- c(nice_order_current,nice_order_former, "Never")
+
+
+# make ordered factor, useful for plotting
+chrismb_phy@sam_data$smoking_detailed <- factor(chrismb_phy@sam_data$smoking_detailed, levels = final_levels)
+
+```
+
+```{r}
+DT::datatable(meta(chrismb_phy) %>% select(smoking_exposure_ga, current_tobacco_g_per_day, years_since_quit.OR.reduced_smoking, smoking_habit_quit.OR.reduced_years, smoking_detailed))
+```
+
+## Microbiome data filtering
+
+```{r, echo=FALSE}
+
+threshold_prevalence <-  1/100
+threshold_detection <- 10
+
+# this filtering 
+chrismb_phy_core <- microbiome::core(chrismb_phy, detection = threshold_detection, prevalence = threshold_prevalence)
+
+```
+
+```{r, echo=FALSE}
+tmp <- rbind(c("-|-", paste(threshold_prevalence,threshold_detection, sep = "|")),
+             c(format(sum(sample_sums(chrismb_phy)), scientific = T,digits = 3),format(sum(sample_sums(chrismb_phy_core)), scientific = T,digits = 3)),
+             cbind(sapply(c(
+               "ASV",
+               "Species",
+               "Genus",
+               "Family",
+               "Order",
+               "Class",
+               "Phylum",
+               "Kingdom"
+             ),
+             function(lvl)
+               tryCatch(ntaxa(tax_glom(chrismb_phy, lvl)), error = function(e) return(0))),
+             sapply(c(
+               "ASV",
+               "Species",
+               "Genus",
+               "Family",
+               "Order",
+               "Class",
+               "Phylum",
+               "Kingdom"
+             ),
+             function(lvl)
+               tryCatch(ntaxa(tax_glom(chrismb_phy_core, lvl)), error = function(e) return(0)))
+             ))
+# 
+# tmp2 <- rbind(tmp, 
+#       cbind(
+#         sapply(c(
+#     "ASV",
+#     "Species",
+#     "Genus",
+#     "Family",
+#     "Order",
+#     "Class",
+#     "Phylum",
+#     "Kingdom"
+#   ),
+#   function(lvl)
+#     tryCatch(ntaxa(tax_glom(chrismb_phy, lvl)), error = function(e) return(0))),
+#   sapply(c(
+#     "ASV",
+#     "Species",
+#     "Genus",
+#     "Family",
+#     "Order",
+#     "Class",
+#     "Phylum",
+#     "Kingdom"
+#   ),
+#   function(lvl)
+#     tryCatch(ntaxa(tax_glom(chrismb_phy_core, lvl)), error = function(e) return(0)))
+#   ))
+
+
+rownames(tmp) <- c(
+  "Prevalence|Detection threshold",
+  "Number of Reads",
+  "ASV",
+  "Species",
+  "Genus",
+  "Family",
+  "Order",
+  "Class",
+  "Phylum",
+  "Kingdom"
+)
+
+colnames(tmp) <- c("Unfiltered", "Filtered")
+
+DT::datatable(tmp, caption = "CHRISMB read and number of different taxonomic ranks before and after filtering by prevalence and detection with the function 'microbiome::core'.")
+
+# make an indicative plot of how many taxonomies are lost during filtering
+
+# tmp[3:nrow(tmp),] %>% as.data.frame() %>% rownames_to_column("TaxRank") %>% pivot_longer(cols = c("Unfiltered", "Filtered")) %>% mutate(TaxRank = factor(TaxRank, levels =c("ASV", "Species", "Genus", "Family", "Order", "Class", "Phylum", "Kingdom")), value = as.double(value)) %>% ggplot(aes(x = TaxRank, y = log(value), fill = name))+ geom_bar(stat = "identity", position = "dodge")
+
+```
+
+
+```{r}
+
+chrismb_phy_core_genus <- speedyseq::tax_glom(chrismb_phy_core, "Genus")
+taxa_names(chrismb_phy_core_genus) <- chrismb_phy_core_genus@tax_table@.Data[,6]
+
+```
+
+## Sample exclusion criteria applied 
+
+```{r}
+
+# Q1 stands for "question 1"
+
+# dir.create("../results/Q1/1.1_alpha diversity/", recursive = TRUE, showWarnings = FALSE)
+dir.create("../results/Q1/1.2_beta diversity/", recursive = TRUE, showWarnings = FALSE)
+dir.create("../results/Q1/1.3_differential abundance/", recursive = TRUE, showWarnings = FALSE)
+dir.create("../results/Q1/1.4_CST/", recursive = TRUE, showWarnings = FALSE)
+
+##############################
+# FILTER NAs in the variables of interest
+
+phy_Q1 <- chrismb_phy_core %>%
+  filter_sample_data(!is.na(age_cat)) %>% 
+  filter_sample_data(!is.na(sex)) %>%
+  filter_sample_data(!is.na(smoking_habits_rm)) %>%  
+  filter_sample_data(!is.na(how_many_teeth)) %>% 
+  filter_sample_data(used_antibiotics_last_3_months == "no")  
+
+
+
+phy_Q1 <- subset_taxa(phy_Q1, taxa_sums(phy_Q1) > 0)
+
+# tot = 1605, done on 03-Jan-2021
+
+cat("\nNumber of samples in the phyloseq for question 1:\n")
+nsamples(phy_Q1)
+
+
+phy_Q1_genus <- speedyseq::tax_glom(phy_Q1, taxrank = "Genus")
+phy_Q1_genus@tax_table@.Data %>% data.frame() %>% .$Genus -> taxa_names(phy_Q1_genus)
+
+
+### aggregate
+if(!"phy_Q1_ID" %in% ls()){
+  phy_Q1_ID <- speedyseq::tax_glom(phy_Q1, "ID")
+  taxa_names(phy_Q1_ID) <- data.frame(tax_table(phy_Q1_ID))[["ID"]]
+}
+
+phy_Q1_meta <- meta(phy_Q1)
+```
+
+
+# Differential abundance by consensus 
+
+```{r}
+
+
+
+```
+
