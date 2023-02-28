@@ -1,0 +1,88 @@
+phy_Q1_genus_deseq_q1 <- phyloseq_to_deseq2(phy_Q1, design = ~ age_cat + sex + how_many_teeth + smoking_exposure_ga)
+
+# calculate geometric means, important to center the counts
+geom_means_q1 <- apply(counts(phy_Q1_genus_deseq_q1), 1, function(x)
+  exp(mean(log(x[x > 0]))))
+
+# estimate size factors, important to account for library size variations
+estim_size_q1 <- estimateSizeFactors(phy_Q1_genus_deseq_q1, geoMeans = geom_means_q1)
+
+# compute the DESeq2 glm, accounting for the estimate size factor and geometric means
+
+deseq2_results_q1 <- DESeq(estim_size_q1, fitType="local")
+
+
+  <- deseq_results_into_list(deseq2_results_q1, 
+                        trait = "how_many_teeth", 
+                        physeq_obj = phy_Q1, 
+                        taxon_lvls_added = c("ID", "Phylum"))
+
+log2fc_plot_all_intersection <- lapply(teeth_DA_ASV_level, filter, padj < 0.05, abs(log2FoldChange) >= 0.5) %>% 
+  bind_rows(.id = "Contrast") %>%
+ ggplot()+
+  geom_point(aes(y = ID, x = log2FoldChange, color =  Contrast, shape = Contrast))+
+ # xlim(c(-5, 2))+
+  theme_light()+
+  facet_grid(rows = vars(Phylum), scales = "free_y",space = "free_y")+
+  xlab(bquote(log[2]~Fold~Change))+
+  ylab("ID")+
+  scale_color_manual(name = "Contrast", values = ggsci::pal_futurama()(6)) +
+  theme(
+    legend.position = "top",
+    axis.text.y = element_text(face ="italic", color = "black", size = 12, angle = 0),
+    axis.text.x = element_text(color = "black", size = 12),
+    strip.text.y = element_text(angle = 0, hjust = 0, face = "bold", color = "gray30"),
+    strip.background.y = element_rect(fill = "white", color = "gray30"),
+    panel.spacing.y =unit(0, "lines"),
+    panel.border = element_rect(colour = "gray30")
+  )+
+  geom_vline(xintercept = 0, colour = "gray30", lty = "dashed")
+
+log2fc_plot_all_intersection
+
+table(phy_Q1_meta$age_cat, phy_Q1_meta$how_many_teeth)
+
+# there are problematic cases in younger ages, that inflate estimates due to very low sample size, 
+# restrict analysis to age >= 51
+
+phy_Q1_genus_deseq_q1 <- phyloseq_to_deseq2(phy_Q1 %>% filter_sample_data(age > 50), design = ~ age_cat + sex + how_many_teeth + smoking_exposure_ga)
+
+# calculate geometric means, important to center the counts
+# geom_means_q1 <- apply(counts(phy_Q1_genus_deseq_q1), 1, function(x)
+#   exp(mean(log(x[x > 0]))))
+# 
+# # estimate size factors, important to account for library size variations
+# estim_size_q1 <- estimateSizeFactors(phy_Q1_genus_deseq_q1, geoMeans = geom_means_q1)
+
+# compute the DESeq2 glm, accounting for the estimate size factor and geometric means
+
+deseq2_results_q1 <- DESeq(phy_Q1_genus_deseq_q1, fitType="local")
+
+
+teeth_DA_ASV_level_age_restricted <- deseq_results_into_list(deseq2_results_q1, 
+                                              trait = "how_many_teeth", 
+                                              physeq_obj = phy_Q1 %>% filter_sample_data(age > 50), 
+                                              taxon_lvls_added = c("ID", "Phylum"))
+
+log2fc_plot_all_intersection_age_restricted <- lapply(teeth_DA_ASV_level_age_restricted, filter, padj < 0.05, abs(log2FoldChange) >= 0.5) %>% 
+  bind_rows(.id = "Contrast") %>%
+  ggplot()+
+  geom_point(aes(y = ID, x = log2FoldChange, color =  Contrast, shape = Contrast))+
+  # xlim(c(-5, 2))+
+  theme_light()+
+  facet_grid(rows = vars(Phylum), scales = "free_y",space = "free_y")+
+  xlab(bquote(log[2]~Fold~Change))+
+  ylab("ID")+
+  scale_color_manual(name = "Contrast", values = ggsci::pal_futurama()(6)) +
+  theme(
+    legend.position = "top",
+    axis.text.y = element_text(face ="italic", color = "black", size = 12, angle = 0),
+    axis.text.x = element_text(color = "black", size = 12),
+    strip.text.y = element_text(angle = 0, hjust = 0, face = "bold", color = "gray30"),
+    strip.background.y = element_rect(fill = "white", color = "gray30"),
+    panel.spacing.y =unit(0, "lines"),
+    panel.border = element_rect(colour = "gray30")
+  )+
+  geom_vline(xintercept = 0, colour = "gray30", lty = "dashed")
+
+log2fc_plot_all_intersection_age_restricted

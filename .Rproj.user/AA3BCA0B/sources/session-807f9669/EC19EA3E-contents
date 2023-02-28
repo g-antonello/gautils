@@ -1,0 +1,1301 @@
+---
+title: "Smoking Paper - Main" 
+subtitle: "Genus level"
+author: "Giacomo Antonello"
+date: "2022-08-02"
+output:
+  rmdformats::readthedown:
+    self_contained: true
+    code_folding: hide
+    toc_depth: 2
+    toc_float: true
+    number_sections: false
+    thumbnails: false
+    lightbox: true
+    gallery: false
+    use_bookdown: true
+    highlight: haddock
+
+
+---
+  
+![Eurac Reserach, Bolzano, Italy](../logos/chris-logo-illi_720x540.png){width=50%}
+![University of Michigan, School of Public Health, Michigan, United States](../logos/fNAXKPX9_400x400.jpg){width=12%}
+
+![Computational Genomics Group, CIBIO, University of Trento, Italy](../logos/Segata Lab logo.png){width=15%}
+
+
+
+```{r, echo=FALSE}
+knitr::opts_chunk$set(
+  cache = FALSE,
+  concordance = TRUE,
+  prompt = TRUE, # fig.width=5, fig.height=5,
+  out.width = "100%",
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  error = TRUE,
+  tidy = FALSE,
+  comment = "")
+
+```
+
+# Data preparation {.tabset}
+
+```{r library setup}
+# from Bioconductor (install by running: BiocManager::install("x") | x = name of the package)
+# BiocManager::install(c("DESeq2", "phyloseq", "microbiome"))
+
+#github functions
+# devtools::install_github("bryandmartin/corncob")
+# remotes::install_github("g-antonello/gautils")
+# remotes::install_github("mikemc/speedyseq")#
+# devtools::install_github("gaospecial/ggvenn")
+
+library(gautils)
+library(magrittr)
+library(ggpubr)
+
+# graphics packages
+# library(ggpubr)
+# library(magrittr)
+# # my functions
+# source("my_personal_functions.R")
+# 
+# 
+# library(speedyseq)
+theme_set(theme_light())
+
+
+chrismb_phy <- readRDS("../input_data/05_chrismb_ONLY_NewBatch_11_2021.rds")
+
+```
+
+## bin daily tobacco smoked
+
+```{r}
+###############################
+
+levels(chrismb_phy@sam_data$smoking_exposure_ga) <- c("Current", "Former", "Never")
+chrismb_phy@sam_data$smoking_exposure_ga <- factor(chrismb_phy@sam_data$smoking_exposure_ga, levels = c("Never", "Former", "Current"))
+
+###############################
+
+levels(chrismb_phy@sam_data$smoking_habits_rm) <- c("Never", "Former", "Current (R)", "Current (NR)")
+
+chrismb_phy <- speedyseq::rename_sample_data(chrismb_phy, years_since_quit.OR.reduced_smoking = years_since_quit_smoking)
+
+```
+
+```{r}
+
+chrismb_phy %<>%
+  mutate_sample_data(
+    ### tobacco g per day (bin 5 by 5)
+    current_tobacco_g_per_day_bin5cat = case_when(smoking_exposure_ga == "Current" ~ cut(
+      current_tobacco_g_per_day,
+      breaks = c(0, 1, 2, seq(5, 30, 5), 60),
+      include.lowest = TRUE
+    ),
+    TRUE ~ NA),
+  ### tobacco g per day (bin 5 by 5, semi-continuous, using upper limit of the range as integer)
+  current_tobacco_g_per_day_bin5cont = case_when(smoking_exposure_ga == "Current" ~ cut(
+      current_tobacco_g_per_day,
+      breaks = c(0, 1, 2, seq(5, 30, 5), 60),
+      labels = c(1, 2, seq(5, 30, 5), 60),
+      include.lowest = TRUE
+    ),
+    TRUE ~ NA) %>% as.character() %>% as.numeric(),
+  
+    ### tobacco g per day (bin 2 by 2)
+    current_tobacco_g_per_day_bin2cat = case_when(smoking_exposure_ga == "Current" ~ cut(
+      current_tobacco_g_per_day,
+      breaks = c(0, 1, seq(2, 30, 2), 60),
+      include.lowest = TRUE
+    ), 
+    TRUE ~ NA
+  ),
+  
+  ### tobacco g per day (bin 2 by 2, semi-continuous, using upper limit of the range as integer)
+  current_tobacco_g_per_day_bin2cont = case_when(smoking_exposure_ga == "Current" ~ cut(
+      current_tobacco_g_per_day,
+      breaks = c(0, 1, seq(2, 30, 2), 60),
+      labels = c(1, seq(2, 30, 2), 60),
+      include.lowest = TRUE
+    ), 
+    TRUE ~ NA
+    ) %>% as.character() %>% as.numeric()
+  )
+
+```
+
+## Bin Years since quitting
+
+```{r}
+max_value <- max(chrismb_phy@sam_data$years_since_quit.OR.reduced_smoking, na.rm = T)
+
+chrismb_phy %<>% 
+  mutate_sample_data(
+    
+    years_since_quitting_binned = case_when(
+      smoking_exposure_ga == "Former" ~ cut(years_since_quit.OR.reduced_smoking, 
+                                            breaks = c(0,1,3,5,10,max_value), 
+      include.lowest = TRUE
+    ),
+    TRUE ~ NA
+  )
+)
+
+rm(max_value)
+
+```
+
+## Ultimate smoking variable for plots: "smoking_detailed"
+
+```{r}
+
+chrismb_phy %<>% 
+  mutate_sample_data(
+    smoking_detailed = case_when(
+      smoking_exposure_ga == "Never" ~ "Never",
+      
+      smoking_exposure_ga == "Former" ~ paste(smoking_exposure_ga,
+                                               years_since_quitting_binned, 
+                                               "y"),
+      smoking_exposure_ga == "Current" ~ paste(smoking_exposure_ga,
+                                               current_tobacco_g_per_day_bin5cat,
+                                               "g"),
+      TRUE ~ "Other"
+    ),
+    smoking_detailed.Extra = case_when(
+      smoking_exposure_ga == "Never" ~ "Never",
+      
+      smoking_exposure_ga == "Former" ~ paste(smoking_exposure_ga,
+                                               years_since_quit.OR.reduced_smoking, 
+                                               "y"),
+      smoking_exposure_ga == "Current" ~ paste(smoking_exposure_ga,
+                                               current_tobacco_g_per_day,
+                                               "g"),
+      TRUE ~ "Other"
+    )
+    
+  )
+
+
+
+nice_order_current <- sort(grep("Current", unique(chrismb_phy@sam_data$smoking_detailed), value = TRUE))[c(9,1,4,8,2,3,5,6,7,10)] %>% rev()
+
+nice_order_former <- sort(grep("Former", unique(chrismb_phy@sam_data$smoking_detailed), value = TRUE))[c(5,1,3,4,2,6)]
+
+final_levels <- c(nice_order_current,nice_order_former, "Never")
+
+
+# SMOKING DETAILED 1 - make ordered factor, useful for plotting
+chrismb_phy@sam_data$smoking_detailed <- factor(chrismb_phy@sam_data$smoking_detailed, levels = final_levels)
+
+
+# SMOKING DETAILED EXTRA - do the same
+
+nice_order_current <- data.frame(
+  labels = sort(grep("Current", unique(chrismb_phy@sam_data$smoking_detailed.Extra), value = TRUE)), 
+  numbers = parse_number(sort(grep("Current", unique(chrismb_phy@sam_data$smoking_detailed.Extra), value = TRUE)))) %>% 
+  arrange(desc(numbers)) %>% 
+  .$labels
+
+nice_order_former <- data.frame(
+  labels = sort(grep("Former", unique(chrismb_phy@sam_data$smoking_detailed.Extra), value = TRUE)), 
+  numbers = parse_number(sort(grep("Former", unique(chrismb_phy@sam_data$smoking_detailed.Extra), value = TRUE)))) %>% 
+  arrange(numbers) %>% 
+  .$labels
+
+final_levels <- c(nice_order_current,nice_order_former, "Never")
+
+chrismb_phy@sam_data$smoking_detailed.Extra <- factor(chrismb_phy@sam_data$smoking_detailed.Extra, levels = final_levels)
+
+rm(nice_order_current, nice_order_former, final_levels)
+```
+
+## Microbiome data filtering
+
+```{r, echo=FALSE}
+
+threshold_prevalence <-  1/100
+threshold_detection <- 10
+
+# this filtering 
+chrismb_phy_core <- microbiome::core(chrismb_phy, detection = threshold_detection, prevalence = threshold_prevalence)
+
+```
+
+
+```{r}
+
+chrismb_phy_core_genus <- speedyseq::tax_glom(chrismb_phy_core, "Genus")
+taxa_names(chrismb_phy_core_genus) <- chrismb_phy_core_genus@tax_table@.Data[,6]
+
+```
+
+## Sample exclusion criteria applied 
+
+```{r}
+
+# Q1 stands for "question 1"
+
+# dir.create("../results/Q1/1.1_alpha diversity/", recursive = TRUE, showWarnings = FALSE)
+dir.create("../results/Q1/1.2_beta diversity/", recursive = TRUE, showWarnings = FALSE)
+dir.create("../results/Q1/1.3_differential abundance/", recursive = TRUE, showWarnings = FALSE)
+dir.create("../results/Q1/1.4_CST/", recursive = TRUE, showWarnings = FALSE)
+
+##############################
+# FILTER NAs in the variables of interest
+
+phy_Q1 <- chrismb_phy_core %>%
+  filter_sample_data(!is.na(age_cat)) %>% 
+  filter_sample_data(!is.na(sex)) %>%
+  filter_sample_data(!is.na(smoking_habits_rm)) %>%  
+  filter_sample_data(!is.na(how_many_teeth)) %>% 
+  filter_sample_data(used_antibiotics_last_3_months == "no")  
+
+
+
+phy_Q1 <- subset_taxa(phy_Q1, taxa_sums(phy_Q1) > 0)
+
+
+phy_Q1_genus <- speedyseq::tax_glom(phy_Q1, taxrank = "Genus")
+phy_Q1_genus@tax_table@.Data %>% data.frame() %>% .$Genus -> taxa_names(phy_Q1_genus)
+
+
+### aggregate
+if(!"phy_Q1_ID" %in% ls()){
+  phy_Q1_ID <- speedyseq::tax_glom(phy_Q1, "ID")
+  taxa_names(phy_Q1_ID) <- data.frame(tax_table(phy_Q1_ID))[["ID"]]
+}
+
+phy_Q1_meta <- meta(phy_Q1)
+
+phy_Q1_genus
+```
+
+# Table 1 - Demographic Table 
+
+```{r}
+
+dir.create("../results/Q0/", recursive = TRUE, showWarnings = FALSE)
+tmp <- phy_Q1_meta
+
+tmp <- tmp %>% 
+  select(sex, BMI, age, age_cat, sys_bp, dia_bp, how_many_teeth, gums_health_opinion, smoking_habits_rm) %>% 
+  #.[complete.cases(.),] %>%
+  dplyr::rename(
+    Sex = sex,
+    `Body Mass Index` = BMI,
+    Age = age,
+    `Age Group` = age_cat,
+    `Systolic BP` = sys_bp,
+    `Diastolic BP` = dia_bp,
+    `N° Teeth`= how_many_teeth,
+    `Gums Health` = gums_health_opinion
+  )
+
+tmp$`Gums Health` <- factor(tmp$`Gums Health`)
+
+levels(tmp$`Gums Health`) <- c("Excellent", "Very good", "Good", "Average", "Poor", "Very poor")
+
+
+library(gtsummary)
+library(flextable)
+
+table1 <- tmp %>% 
+  tbl_summary(by = smoking_habits_rm, 
+              statistic = list(all_continuous() ~ "{mean} ({sd})")) %>%
+  add_p(test=list(all_continuous() ~ "kruskal.test",
+                  all_categorical(dichotomous = FALSE) ~ "chisq.test"))  %>%
+  as_flex_table() %>% 
+  set_table_properties(layout = "autofit") %>% 
+  set_caption("Demographics of CHRISMB cohort, in South Tyrol, Italy, with respect to smoking habit. Per-column percentages were also reported in brackets. Current smokers were separated into smokers who reduced daily smoking dosage some time in the past - Current (R), and those who did not reduce - Current (NR). The whole cohort is included under the “CHRISMB” column.", align_with_table = TRUE)
+
+table1
+
+```
+
+
+# Figure 1 - Qualitative Smoking habits {.tabset}
+
+## Figure 1A - Principal Coordinate Analysis
+
+```{r}
+
+if(!identical(levels(phy_Q1_genus@sam_data$smoking_exposure_ga), c("Never", "Former", "Current"))){
+  
+  phy_Q1_genus@sam_data$smoking_exposure_ga %<>% factor(levels = c("never", "former", "current"))
+  levels(phy_Q1_genus@sam_data$smoking_exposure_ga) <- c("Never", "Former", "Current")
+  
+}
+
+div <- phyloseq::distance(microbiome::transform(phy_Q1_genus, "compositional"), "bray")
+
+ord <- ordinate(physeq = phy_Q1_genus,
+                distance = div,
+                method = "PCoA"
+)
+
+fig1A <- plot_ordination(physeq = phy_Q1_genus,
+                         ordination = ord, 
+                         color = "smoking_exposure_ga")+ 
+  labs(title = NULL)+
+  theme_light()+
+  theme(legend.position = "bottom")+ 
+  scale_color_discrete(name = "Smoking habit",type = ggsci::pal_jco("default")(4)[c(1,2,4)])+ 
+  stat_ellipse(aes(group = smoking_exposure_ga), show.legend = FALSE)+
+  guides(color = guide_legend(override.aes = list(size=3)))
+
+fig1A$labels$caption <- gsub(fig1A$labels$caption, pattern = "\n", replacement = "; ")
+fig1A$labels$x <- paste0("Principal Coordinate 1   ", strsplit(fig1A$labels$x, "   ")[[1]][[2]])
+fig1A$labels$y <- paste0("Principal Coordinate 2   ", strsplit(fig1A$labels$y, "   ")[[1]][[2]])
+
+```
+
+## Figure 1B - Differential Abundance {.tabset}
+
+```{r}
+
+if(!"phy_Q1_genus" %in% ls()){
+  phy_Q1_genus <- speedyseq::tax_glom(phy_Q1, taxrank = "Genus")
+  phy_Q1_genus@tax_table@.Data %>% data.frame() %>% .$Genus -> taxa_names(phy_Q1_genus)
+}
+##############################
+
+
+dir.create("../results/Q1/1.3_differential abundance/genus/smoking_exposure_ga/")
+library(DESeq2)
+
+# create deseq object
+phy_Q1_genus_deseq_q1 <- phyloseq_to_deseq2(phy_Q1_genus, design = ~ age_cat + sex + how_many_teeth + smoking_exposure_ga)
+
+# calculate geometric means, important to center the counts
+geom_means_q1 <- apply(counts(phy_Q1_genus_deseq_q1), 1, function(x)
+      exp(mean(log(x[x > 0]))))
+
+# estimate size factors, important to account for library size variations
+estim_size_q1 <- estimateSizeFactors(phy_Q1_genus_deseq_q1, geoMeans = geom_means_q1)
+
+# compute the DESeq2 glm, accounting for the estimate size factor and geometric means
+
+deseq2_results_q1 <- DESeq(estim_size_q1, fitType="local")
+
+####### here we write results #######
+saveRDS(deseq2_results_q1, "../results/Q1/1.3_differential abundance/Q1.3_Diff_Abund_smoking_results.rds")
+
+deseq_genus_smoking_list_df <- list("Current/Former" = results(deseq2_results_q1, contrast = c("smoking_exposure_ga","Current", "Former"), 
+                                                          pAdjustMethod = "fdr"),
+                               "Current/Never" = results(deseq2_results_q1, contrast = c("smoking_exposure_ga","Current", "Never"), 
+                                                          pAdjustMethod = "fdr"),
+                               "Former/Never" = results(deseq2_results_q1, contrast = c("smoking_exposure_ga","Former", "Never"), 
+                                                          pAdjustMethod = "fdr")
+                               ) %>% 
+  lapply(as.data.frame) %>% 
+  lapply(rownames_to_column, "Genus")
+
+saveRDS(deseq_genus_smoking_list_df, "../results/Q1/1.3_differential abundance/Q1.3_Diff_Abund_smoking_results_as.data.frames.rds")
+
+```
+
+### Summary DA Genera, Log2FoldChange for alls contrasts
+
+```{r, fig.width=12, fig.height=5}
+
+deseq_genus_smoking_matrix_da_genera <- deseq_genus_smoking_list_df %>% 
+  lapply(filter, padj < 0.05) %>% 
+  lapply(dplyr::select, Genus, log2FoldChange) %>% 
+  purrr::reduce(full_join, by = "Genus") %>% 
+  set_names(c("Genus", "Curr/Form", "Curr/Nev", "Form/Nev")) %>% 
+  column_to_rownames("Genus") %>% 
+  as.matrix()
+
+deseq_genus_smoking_matrix_da_genera[is.na(deseq_genus_smoking_matrix_da_genera)] <- min(deseq_genus_smoking_matrix_da_genera, na.rm = T) -1
+
+pheatmap::pheatmap(t(deseq_genus_smoking_matrix_da_genera), 
+                   angle_col = 315, 
+                   scale = "none", 
+                   main = paste("NAs set to",min(deseq_genus_smoking_matrix_da_genera) %>% round(2))
+                   )
+
+```
+
+### Fold-Change Plot
+
+Based on DESEq2 plotting suggestions in the BioC vignette
+
+```{r, fig.width=8, fig.height=9}
+
+# these are the strongest genera, the union of (never vs current NR) ^ (never vs current R) ^ (former vs current NR) ^ (former vs current R)
+
+signif_genera <- readRDS("../results/Q1/1.3_differential abundance/Q1.3_Diff_Abund_smoking_results_as.data.frames.rds") %>% 
+  lapply(function(i) filter(i, padj < 0.05) %>% .$Genus)
+
+union_signif_genera <- Reduce(union, signif_genera)
+
+
+###############################################################################
+###############################################################################
+# Fold-Change plots only these 16 significant genera
+# union
+
+filtered_list_DA_results_union <- deseq_genus_smoking_list_df %>%
+  lapply(function(i) filter(i, Genus %in% union_signif_genera) %>%
+           left_join(as.data.frame(tax_table(phy_Q1_genus)), by = "Genus") %>% 
+           select(Genus, log2FoldChange, lfcSE, pvalue, padj, Phylum))
+
+all_results_df_union <- bind_rows(filtered_list_DA_results_union, .id = "comparison") %>%
+  filter(padj <0.05) %>% 
+  left_join(phy_BasicStats(phy_Q1_genus, "compositional") %>% dplyr::rename(Genus = taxon), by = "Genus") %>% 
+  mutate(
+    Phylum_Genus = paste(Phylum, Genus, sep = "__"),
+    Phylum = factor(Phylum),
+    Phylum_Genus = factor(Phylum_Genus, levels = rev(sort(unique(Phylum_Genus))))
+    ) %>% 
+  dplyr::rename(Prevalence = prevalence_compositional,
+         Contrast = comparison)
+
+names_order_as_wanted <- levels(all_results_df_union$Phylum_Genus) %>% strsplit("__", fixed = TRUE) %>% sapply("[", 2)
+all_results_df_union$Genus_factor <- factor(all_results_df_union$Genus, levels = names_order_as_wanted)
+
+
+# Make Plot
+
+log2fc_plot_all_intersection <- ggplot(data = all_results_df_union)+
+  geom_point(aes(y = Genus_factor, x = log2FoldChange, color = Contrast, shape = Contrast, alpha = Prevalence, size = Prevalence))+
+  xlim(c(-5, 2))+
+  theme_light()+
+  facet_grid(rows = vars(Phylum), scales = "free_y",space = "free_y")+
+  xlab(bquote(log[2]~Fold~Change))+
+  ylab("Genus")+
+  scale_color_manual(name = "Contrast", values = ggsci::pal_futurama()(4)[c(1,3)]) +
+  theme(
+    legend.position = "top",
+    axis.text.y = element_text(face ="italic", color = "black", size = 12, angle = 0),
+    axis.text.x = element_text(color = "black", size = 12),
+    strip.text.y = element_text(angle = 0, hjust = 0, face = "bold", color = "gray30"),
+    strip.background.y = element_rect(fill = "white", color = "gray30"),
+    panel.spacing.y =unit(0, "lines"),
+    panel.border = element_rect(colour = "gray30")
+  )+
+  geom_vline(xintercept = 0, colour = "gray30", lty = "dashed")
+
+
+log2fc_plot_all_intersection
+
+```
+
+### Heatmap
+
+```{r, fig.show="hide"}
+deseq_genus_smoking_list_df <- readRDS("../results/Q1/1.3_differential abundance/Q1.3_Diff_Abund_smoking_results_as.data.frames.rds")
+
+signif_genera <- deseq_genus_smoking_list_df[1:2] %>% 
+  lapply(function(i) filter(i, padj < 0.05) %>% .$Genus)
+
+intersect_signif_genera <- Reduce(intersect, signif_genera)
+union_signif_genera <- Reduce(union, signif_genera)
+
+tmp_phy <- subset_taxa(phy_Q1_genus, taxa_names(phy_Q1_genus) %in% intersect_signif_genera)
+
+fig1B <- tmp_phy %>%
+  mutate_sample_data(smoking_exposure_ga = as.character(add_N_to_catVar(smoking_exposure_ga))) %>% 
+  microbiome::transform("compositional") %>% 
+  phy_summarise_taxa_by_metadata("smoking_exposure_ga") %>% 
+  pheatmap::pheatmap(angle_col = 315, scale = "row", treeheight_col = 0, treeheight_row = 0)
+
+fig1B <- ggplotify::as.ggplot(fig1B)
+
+```
+
+## Figure 1C - Oxygen Metabolism
+
+```{r}
+
+dir.create("../results/Q1/1.7_oxygen/", recursive = TRUE, showWarnings = FALSE)
+
+otutab_with_genus_name <- phy_Q1_genus %>%
+  microbiome::transform("compositional") %>%
+  abundances() %>% 
+  as.data.frame() %>% 
+  rownames_to_column("Genus") %>% # next step helps assigning the highest number of genera/families possible (because among the taxa in the table there are some families too) 
+  mutate(Genus_easier = sapply(strsplit(as.character(Genus), "_"), function(g) g[[1]]))
+
+# get the metadata of the oxygen metabolism vs Genus
+oxygen_requirement_taxa <- read.csv("https://raw.githubusercontent.com/mcalgaro93/sc2meta/master/data/genera_methabolism.tsv", sep = "\t")
+colnames(oxygen_requirement_taxa) <- c("Genus_easier", "oxygen_requirements")
+oxygen_requirement_taxa$oxygen_requirements %<>% gsub(" ", ". ", x = ., fixed = TRUE)
+
+# merge otu table and oxygen requirement data by simplified genus name
+molten_df_merged_oxygen <- merge(otutab_with_genus_name, oxygen_requirement_taxa, by = "Genus_easier", all.x = TRUE)
+molten_df_merged_oxygen$oxygen_requirements <- ifelse(is.na(molten_df_merged_oxygen$oxygen_requirements), "NA",molten_df_merged_oxygen$oxygen_requirements)
+
+# aggregate by oxygen metabolism, instead of genera, to make code easier
+
+tmp <- molten_df_merged_oxygen %>% 
+  select(!contains("Genus")) %>%
+  group_by(oxygen_requirements) %>% 
+  summarise_all(sum) %>%
+  column_to_rownames("oxygen_requirements") %>% 
+  t() %>% as.data.frame() %>% 
+  rownames_to_column("aid_michigan")
+
+df_final <- tmp %>% reshape2::melt() %>% 
+  merge(., phy_Q1_meta, all.x = TRUE, by = "aid_michigan") %>% 
+  dplyr::rename(oxygen = variable)
+
+saveRDS(df_final,"../results/Q1/1.7_oxygen/df_final_for_plotting.RDS")
+
+library(rstatix)
+
+signif <- filter(df_final, oxygen != "NA") %>%
+  mutate(aerobiosis = oxygen) %>% 
+  group_by(oxygen) %>% 
+  rstatix::t_test(value ~ smoking_exposure_ga) %>% 
+  adjust_pvalue(method = "bonferroni") %>% 
+  #add_significance("p.adj") %>% 
+  add_xy_position(x = "oxygen",step.increase = 0.05) %>% 
+  filter(p.adj < 0.05)
+
+fig1C <- ggboxplot(data = filter(df_final, oxygen != "NA"),
+                   x = "oxygen", 
+                   y = "value", 
+                   fill = "smoking_exposure_ga") + 
+  ylab("Relative Abundance") + 
+  xlab("")+ 
+  scale_fill_discrete(name = "Smoking habit", type = ggsci::pal_jco()(4)[c(1,2,4)]) + 
+  stat_pvalue_manual(signif, tip.length = 0.01) + 
+  #labs(caption = "Bonferroni-adjusted t-test.P-value codes: ** < 0.05; *** < 0.001; **** < 0.0001")+
+  theme_light()+
+  theme(legend.position = "none")
+```
+
+
+# {-}
+
+## Figure 1 Panel
+
+```{r, fig.width= 11,fig.height=10}
+Fig1_ggpanel <- ggarrange(
+  ggarrange(fig1A, 
+            fig1C, 
+            
+            nrow = 2, ncol = 1, labels = c("A","C"), heights = c(1,0.8)
+            ), 
+  ggplot() + theme_void(),
+  fig1B, 
+  
+  nrow = 1, ncol = 3, labels = c("", "B", ""), widths = c(1,0.1,1)
+  )
+
+ggsave(
+  plot = Fig1_ggpanel,
+  filename = "../results/Figures/latest_figure_panels/smoking_exposure_ga/Figure1.png",
+  height = 7,
+  width = 8,
+  units = "in",
+  dpi = 600
+)
+
+Fig1_ggpanel
+
+```
+
+# Figure 2 - Current smokers, regression vs dosage per day {.tabset}
+
+```{r, message = FALSE}
+
+phy_Q2 <- phy_Q1 %>% 
+  filter_sample_data(grepl("Current", smoking_exposure_ga)) %>%
+  filter_sample_data(!is.na(current_tobacco_g_per_day)) %>%
+  filter_sample_data(current_tobacco_g_per_day < 60)
+
+phy_Q2 <- subset_taxa(phy_Q2, taxa_sums(phy_Q2)>0)
+
+phy_Q2_genus <- phy_tax_glom(phy_Q2, "Genus")
+
+dir.create("../results/Q2/genus/DESeq2_regression/", recursive = TRUE, showWarnings = FALSE)
+
+phy_Q2_genus
+```
+
+## Regression
+
+```{r, message = FALSE, warning=FALSE}
+
+deseq_raw_results_Q2 <- list()
+for(gr in c("current_tobacco_g_per_day_bin5cont", "current_tobacco_g_per_day_bin2cont", "current_tobacco_g_per_day")){
+  
+  # create deseq object
+  fla <- as.formula(paste0("~ age + sex + how_many_teeth + ", gr))
+  
+  phy_q2_genus_deseq_q2 <- phyloseq_to_deseq2(phy_Q2_genus, design = fla)
+  
+  # calculate geometric means, important to center the counts
+  
+  geom_means_q2 <- apply(counts(phy_q2_genus_deseq_q2), 1, function(x)
+      exp(mean(log(x[x > 0]))))
+  
+  # estimate size factors, important to account for library size variations
+  estim_size_q2 <- estimateSizeFactors(phy_q2_genus_deseq_q2, geoMeans = geom_means_q2)
+  
+  # compute the DESeq2 glm, accounting for the estimate size factor and geometric means
+  
+  deseq2_results_q2 <- DESeq(estim_size_q2, fitType="local")
+  deseq_raw_results_Q2[[gr]] <- deseq2_results_q2
+}
+
+taxonomy <- as.data.frame(tax_table(phy_Q2_genus))[c("Genus", "Phylum")]
+results_Q2 <- lapply(deseq_raw_results_Q2, function(res) results(res) %>% 
+                       as.data.frame() %>% 
+                       rownames_to_column("Genus") %>%
+                       merge(taxonomy, by = "Genus", sort = FALSE, all.x = TRUE)
+)
+
+saveRDS(results_Q2, "../results/Q2/genus/DESeq2_regression/deseq_smoking_Q2_datafames.rds")
+
+rm(taxonomy)
+
+```
+
+## Figure 2A - Heatmap
+
+```{r, fig.show="hide"}
+q2_results <- readRDS("../results/Q2/genus/DESeq2_regression/deseq_smoking_Q2_datafames.rds") %>% 
+  .$current_tobacco_g_per_day_bin5cont %>% 
+  as.data.frame() %>% 
+  filter(padj < 0.05)
+
+Fig2A <- phy_Q2_genus %>%
+  mutate_sample_data(smoking_detailed = as.character(add_N_to_catVar(smoking_detailed))) %>% 
+  microbiome::transform("compositional") %>% 
+  filter_tax_table(taxa_names(.) %in% q2_results$Genus) %>%
+  phy_summarise_taxa_by_metadata("smoking_detailed", .fun = mean) %>% 
+  pheatmap::pheatmap(angle_col = 315, scale = "row", cluster_cols = TRUE,  treeheight_col = 15, treeheight_row = 0)
+
+```
+
+## Figure 2 B,C,D
+
+```{r}
+
+Fig2BCD <-
+  filter(
+    df_final,
+    oxygen != "NA" &
+      smoking_exposure_ga == "Current",
+    current_tobacco_g_per_day < 60
+  ) %>%
+  group_split(oxygen) %>%
+  lapply(
+    function(ox)
+      ggscatter(ox,
+                x = "current_tobacco_g_per_day",
+                y = "value",
+                alpha = 0.5,
+                color = "gray30") +
+      geom_smooth(se = TRUE) +
+      xlab("Tobacco smoked per day (g)") +
+      ylab("Relative Abundance") +
+      ggtitle(unique(ox$oxygen)) 
+  )
+
+```
+
+# {-}
+
+## Figure 2 - Panel
+
+```{r, message = FALSE, warning=FALSE, fig.height=8, fig.width=10}
+
+# Fig2_ggpanel <- ggarrange(
+#   ggplot()+ theme_void(),
+#   ggplotify::as.ggplot(Fig2A), 
+#   ggarrange(
+#     Fig2BCD[[1]], 
+#     Fig2BCD[[2]], 
+#     Fig2BCD[[3]], 
+#     
+#     nrow = 3, ncol = 1, labels = c("B", "C", "D")
+#     ), 
+#   
+#   nrow = 1, ncol = 3, widths = c(0.1, 1.5,1), labels = c("A",  "", "")
+#   )
+
+Fig2_ggpanel <- ggarrange(
+  #ggplot()+ theme_void(),
+  ggplotify::as.ggplot(Fig2A), 
+  ggarrange(
+    Fig2BCD[[1]], 
+    Fig2BCD[[2]], 
+    Fig2BCD[[3]], 
+    
+    nrow = 3, ncol = 1, labels = c("B", "C", "D")
+    ), 
+  
+  nrow = 1, ncol = 2, widths = c(1.5,1), labels = c("A", "")
+  )
+
+
+ggsave(
+  plot = Fig2_ggpanel,
+  filename = "../results/Figures/latest_figure_panels/smoking_exposure_ga/Figure2.png",
+  height = 7,
+  width = 8,
+  units = "in",
+  dpi = 600
+)
+
+Fig2_ggpanel
+
+```
+
+
+# Figure 3 - Former smokers, regression vs years since quitting {.tabset}
+
+```{r, message=FALSE}
+
+phy_Q3 <- filter_sample_data(phy_Q1, 
+                             smoking_exposure_ga == "Former", !is.na(years_since_quit.OR.reduced_smoking)) %>%
+  filter_sample_data(aid_chris != "0010000098")  %>%# this has to be filtered out because the individual gave a wrong value to the "age_quit_smoking" variable (age = 10 years... impossible. probably wrote it thinking "how many years ago")
+  filter_sample_data(!is.na(years_since_quit.OR.reduced_smoking))
+
+phy_Q3 <- subset_taxa(phy_Q3, taxa_sums(phy_Q3) > 0)
+
+phy_Q3@sam_data$years_since_quit.OR.reduced_smoking %<>% as.numeric()
+
+phy_Q3_genus <- phy_tax_glom(phy_Q3, "Genus")
+
+phy_Q3
+```
+
+## Regression calculations and summary table
+
+```{r, message=FALSE, warning=FALSE}
+
+library(DESeq2)
+
+phy_q3_genus_deseq <- phyloseq_to_deseq2(phy_Q3_genus, design = ~ age_cat + sex + how_many_teeth + years_since_quit.OR.reduced_smoking)
+
+# calculate geometric means, important to center the counts
+geom_means_q3 <- apply(counts(phy_q3_genus_deseq), 1, function(x)
+      exp(mean(log(x[x > 0]))))
+
+# estimate size factors, important to account for library size variations
+estim_size_q3 <- estimateSizeFactors(phy_q3_genus_deseq, geoMeans = geom_means_q3)
+
+# compute the DESeq2 glm, accounting for the estimate size factor and geometric means
+
+deseq2_results_q3 <- DESeq(estim_size_q3, fitType="local")
+
+results_q3 <- results(deseq2_results_q3, name = "years_since_quit.OR.reduced_smoking")
+
+results_q3.df <- as.data.frame(results_q3)
+
+DT::datatable(arrange(results_q3.df, padj) %>% mutate_if(is.numeric, round, 3), caption = "Table 'Years since quitting' | Results of regression of microbial genera in response to the years since quitting smoking. The model was corrected for age, sex and number of teeth, nominal P-values correceted for False Discovery Rate with the Benjamini-Hochberg method.")
+```
+
+
+## Figure 3A - Heatmap
+
+```{r, include=FALSE, echo=FALSE}
+caption <- "Figure 3. Smoking cessation induces a perturbation of the salivary microbiota composition, which tends to resemble never smokers’ profiles within 4 years.
+(A) Heatmap of the mean relative abundance of genera significantly affected by smoking (see Figure 1), in relation to the years since quitting. Taxa were transformed to relative abundance and scaled by row, to highlight differences in mean abundance in relation to the years since quitting grouped to limit the low sample size of some categories. (B, C, D) Relative abundance of anaerobes, aerobes and facultative anaerobes in relation to years since quitting smoking"
+```
+
+```{r, fig.cap=print(caption), include=FALSE}
+
+fig3A <- phy_Q1_genus %>% 
+  filter_sample_data(!(grepl("NA", smoking_detailed,fixed = T)) & smoking_exposure_ga != "Current") %>% 
+  microbiome::transform("compositional") %>% 
+  mutate_sample_data(smoking_detailed = as.character(add_N_to_catVar(smoking_detailed))) %>%
+  filter_tax_table(taxa_names(.) %in% intersect_signif_genera) %>% 
+  phy_summarise_taxa_by_metadata("smoking_detailed", .fun = mean) %>% 
+  pheatmap::pheatmap(angle_col = 315, scale = "row", treeheight_col = 15, treeheight_row = 0)
+
+```
+
+## Figure 3 B,C,D
+
+```{r}
+
+fig3BCD <-
+  filter(
+    df_final,
+    oxygen != "NA" &
+      aid_michigan %in% sample_names(phy_Q3_genus) &
+      smoking_exposure_ga == "Former" &
+      years_since_quit.OR.reduced_smoking <= 40
+  ) %>%
+  group_split(oxygen) %>%
+  lapply(
+    function(ox)
+      ggscatter(ox,
+                x = "years_since_quit.OR.reduced_smoking",
+                y = "value",
+                alpha = 0.5
+      ) +
+      geom_smooth(se = TRUE) +
+      xlab("Years since quitting smoking") +
+      ylab("Relative Abundance") +
+      ggtitle(unique(ox$oxygen)) +
+      
+      theme_light()+geom_point(alpha = 0.1, color = "gray50")
+  )
+
+```
+
+# {-}
+
+## Figure 3 - Panel
+
+```{r, fig.height=10, fig.width=10}
+
+Fig3_ggpanel <- ggarrange(
+  ggplotify::as.ggplot(fig3A), 
+  ggarrange(fig3BCD[[1]], fig3BCD[[2]], fig3BCD[[3]], 
+            
+            nrow = 3, ncol = 1, labels = c("B", "C", "D")
+  ), 
+  
+  nrow = 1, ncol = 2, widths = c(2,1), labels = c("A", "")
+  )
+
+
+ggsave(
+  plot = Fig3_ggpanel,
+  filename = "../results/Figures/latest_figure_panels/smoking_exposure_ga/Figure_3.png",
+  height = 7,
+  width = 8,
+  units = "in",
+  dpi = 600
+)
+
+Fig3_ggpanel
+
+```
+
+# Figure 4 - Pathways differential abundance {.tabset}
+
+PICRUSt2 input data were generated using the full CHRISMB dataset filtered for prevalence and detection (resp. `1%` and `10` counts), which had 623 features for 1928 samples. I though I would do this for all samples once and for all, the set of ASVs doesn't change if I pick the smoking paper subset or the CHRISMB full one. The discriminative part is the set of ASVs.
+
+Results are stored in `/home/gantonello/CHRISMB/PICRUSt2_prediction_v2.5/` subdivided into stratified and unstratified. the R script to generate the input data is in each of those two base directories.
+
+Then I imported the two informative datasets:
+
+ - EC codes per sample (like looking at single enzyme level)
+ - pathway abundances (like looking at the aggregated enzymes)
+
+
+**HOW DOES PICRUSt2 ASSIGN EC AND PATHWAYS?** It has some mapping files inside the environment.
+
+If you run the `picrust_pipeline.py` with default settings, PICRUSt2 will take information from:
+
+`/home/gantonello/miniconda3/envs/picrust2/lib/python3.8/site-packages/picrust2/`
+And from there it will:
+
+   1. Assign the ASVs reference seqs to the closest bacterial genome
+   2. If the distance from the closest annotated reference genome is less than 2, it assumes identity and will assign a set of potential functions using `./default_files/prokaryotic/ec.txt.gz`
+   3. EC numbers are converted into enzyme names with `./default_files/pathway_mapfiles/ec_level4_to_metacyc_rxn.tsv`
+   4. these enzyme names are assigned to pathway using `./default_files/pathway_mapfiles/metacyc_path2rxn_struc_filt_pro.txt`
+
+Then the names get nicer names with a simple, final function, and that's what I imported for the analysis.
+
+Let's start with pathways, correcting for **age category, sex, and N° teeth**, as the rest of the paper draft
+
+```{r pathways_data_loading}
+
+picrust_pathways_matrix <- data.table::fread("C:/Users/gantonello/sensitive_data/CHRISMB/PICRUSt2_pathways_output/path_abun_unstrat_descrip.tsv.gz") %>% 
+  dplyr::select(-pathway) %>% 
+  column_to_rownames("description") %>% 
+  as.matrix()
+
+picrust_pathways_matrix %<>% round(0)
+
+picrust_pathways_matrix_Q1 <- picrust_pathways_matrix[!grepl("super", rownames(picrust_pathways_matrix)),sample_names(phy_Q1)]
+
+#create a map data frame for pathway names
+
+pathway_names_map_ALL <- data.frame(original_name = rownames(picrust_pathways_matrix_Q1),
+                                fixed_name = make.names(rownames(picrust_pathways_matrix_Q1)))
+
+```
+
+## Diff abund 1: DESeq2
+
+```{r, fig.align='center'}
+library(DESeq2)
+#############################################################################
+
+deseq_object_picrust <- phyloseq(otu_table(picrust_pathways_matrix_Q1, taxa_are_rows = TRUE), sample_data(phy_Q1))  %>% 
+  core(detection = 10, prevalence = 0.05) %>% 
+  phyloseq_to_deseq2(design = ~ sex + age_cat + how_many_teeth + smoking_exposure_ga)
+
+geom_means <- apply(counts(deseq_object_picrust), 1, function(x) exp(mean(log(x[x>0]))))
+
+# estimate size factors, important to account for library size variations
+estim_size <- estimateSizeFactors(deseq_object_picrust, geoMeans = geom_means)
+
+# compute the DESeq2 glm, accounting for the estimate size factor and geometric means
+
+deseq2_results_picrust <- DESeq(estim_size, fitType = "local")
+
+picrust_DA_results_dfs <- list("Current/Former" = results(deseq2_results_picrust, contrast = c("smoking_exposure_ga","Current", "Former"), 
+                                                          pAdjustMethod = "BH"),
+                               "Current/Never" = results(deseq2_results_picrust, contrast = c("smoking_exposure_ga","Current", "Never"), 
+                                                          pAdjustMethod = "BH")
+                               ) %>% 
+  lapply(as.data.frame) %>% 
+  lapply(rownames_to_column, "pathway")
+
+```
+
+## Diff abund 2: LinDA
+
+```{r, include=FALSE}
+#devtools::install_github("zhouhj1994/linDA")
+library(LinDA)
+
+linDA_model <- linda(otu.tab = picrust_pathways_matrix_Q1, 
+                   meta = phy_Q1_meta, formula = '~ sex +age_cat + how_many_teeth + smoking_exposure_ga', 
+                   alpha = 0.05,
+                   prev.cut = 0.01, 
+                   lib.cut = 1000, 
+                   winsor.quan = 0.97,
+                   adaptive = T)
+
+```
+
+
+## Diff abund 3: Maaslin2
+
+```{r, include=FALSE}
+
+dir.create("../results/Maaslin2_DA", showWarnings = FALSE)
+
+
+if(!file.exists("../results/Maaslin2_DA/significant_results.tsv")){
+  
+  library(Maaslin2)
+ # older normaliz and so on 
+  # Maaslin2(
+  #   input_data = picrust_pathways_matrix_Q1, 
+  #   input_metadata = phy_Q1_meta, 
+  #   output = "../results/Maaslin2_DA", 
+  #   analysis_method = "LM",
+  #   fixed_effects = c("age_cat", "sex", "how_many_teeth", "smoking_exposure_ga"),
+  #   reference = c("smoking_exposure_ga, Never"),
+  #   transform = "LOG",
+  #   normalization = "TMM",
+  #   correction = "BH",
+  #   plot_heatmap = F
+  # )
+
+  # these following are the same settings used by Nearing  et al. (2021) 
+  Maaslin2(
+    input_data = picrust_pathways_matrix_Q1, 
+    input_metadata = phy_Q1_meta, 
+    output = "../results/Maaslin2_DA2", 
+    analysis_method = "LM",
+    fixed_effects = c("age_cat", "sex", "how_many_teeth", "smoking_exposure_ga"),
+    reference = "smoking_exposure_ga, Never",
+    transform = "AST",
+    normalization = "TSS",
+    correction = "BH",
+    standardize = FALSE,
+    plot_heatmap = F
+  )
+  
+
+}else{
+
+maaslin_results <- read.table("../results/Maaslin2_DA/significant_results.tsv", header = T) %>% 
+  mutate(feature = pathway_names_map_ALL$original_name[match(feature, pathway_names_map_ALL$fixed_name)])
+}
+
+# open.plot.directory("../results/Maaslin2_DA/significant_results.tsv")
+```
+
+## Diff abund 4: ALDEx2 (glm)
+
+```{r, cache=TRUE}
+
+if (!file.exists("../results/ALDEx2.DA.rawResults.list.RDS")) {
+  
+  library(ALDEx2)
+  
+  model_mtx <-
+    model.matrix(
+      ~ how_many_teeth + sex + age_cat + smoking_exposure_ga,
+      data = dplyr::select(
+        phy_Q1_meta,
+        how_many_teeth,
+        sex,
+        age_cat,
+        smoking_exposure_ga
+      ) %>% .[intersect(colnames(picrust_pathways_matrix_Q1),
+                        rownames(phy_Q1_meta)), ]
+    )
+  
+  aldex.glm.pathway_smoking_ga <-
+    aldex.clr(picrust_pathways_matrix_Q1[, intersect(colnames(picrust_pathways_matrix_Q1),
+                                                     rownames(phy_Q1_meta))],
+              model_mtx,
+              mc.samples = 200,
+              denom = "all")
+  
+  glm.test_pathway_smoking_ga <-
+    aldex.glm(aldex.glm.pathway_smoking_ga, model_mtx, "BH")
+  
+  glm.effects_pathway_smoking_ga <-
+    aldex.glm.effect(aldex.glm.pathway_smoking_ga, verbose = FALSE)
+  
+  aldex.results <- list(clr.model = aldex.glm.pathway_smoking_ga,
+                        glm.test = glm.test_pathway_smoking_ga,
+                        eff_size.test = glm.effects_pathway_smoking_ga)
+  
+  
+  saveRDS(aldex.results, "../results/ALDEx2.DA.rawResults.list.RDS")
+  
+} else{
+  aldex.results <- readRDS("../results/ALDEx2.DA.rawResults.list.RDS")
+}
+
+```
+
+## Diff abund 5: ANCOM-BC
+
+```{r}
+if (!file.exists("../results/ANCOM-BC.DA.rawResults.list.RDS")) {
+tmp <- phyloseq(otu_table(picrust_pathways_matrix_Q1, taxa_are_rows = TRUE), sample_data(phy_Q1_meta))  %>% 
+  core(detection = 10, prevalence = 0.05) %>% 
+  mia::makeTreeSummarizedExperimentFromPhyloseq()
+
+
+library(ANCOMBC)
+
+ancom_0 <- ancombc2(data = tmp,
+        assay_name = "counts", 
+        tax_level = NULL,
+        fix_formula = "how_many_teeth + sex + age_cat + smoking_exposure_ga", 
+        group = "smoking_exposure_ga",
+        struc_zero = TRUE,
+        iter_control = list(tol = 1e-5, max_iter = 20, verbose = FALSE),
+        em_control = list(tol = 1e-5, max_iter = 20),  
+        p_adj_method = "BH",
+        n_cl = 1,
+        alpha = 0.05)
+
+ancom_res_current_never <- ancom_0$res %>% 
+  dplyr::select(contains(c("taxon", "gaCurrent")), -contains("diff_")) %>% 
+  set_names(c("pathway", "log2FoldChange", "lfcSE", "wald_stat", "p.value", "padj"))
+
+saveRDS(ancom_res_current_never, "../results/ANCOM-BC.DA.rawResults.list.RDS")
+
+}else{
+  
+  ancom_res_current_never <- readRDS("../results/ANCOM-BC.DA.rawResults.list.RDS")
+  
+}
+
+```
+
+# {-}
+
+## Final summary of results
+
+Results filtered by two conditions:
+
+  1. FDR (5%) corrected $q-value \greaterthan  0.05$
+  2. The effect size, irrespectively of the way it is estimated, must be larger than 0.5
+  
+```{r, include=FALSE}
+# ALDEx2
+aldex_glinDAsmoking_signif <- aldex.results$glm.test %>% 
+  as.data.frame() %>% 
+  dplyr::select(contains("smoking_exposure_gaCurrent")) %>% 
+  dplyr::rename_all(.funs = function(x) gsub(pattern =  ".*\\:", replacement = "", x = x)) %>% 
+  rownames_to_column("pathway") %>% 
+  as_tibble() %>% 
+  filter(abs(Est) > 0.5, pval.holm < 0.05)
+  
+# MaAsLin2  
+maaslin_signif <- maaslin_results %>% 
+  filter(metadata == "smoking_exposure_ga") %>% 
+  dplyr::select(feature, value, coef, stderr, pval, qval, N.not.0) %>% 
+  filter(qval < 0.05, abs(coef) > 0.5, value == "Current")
+
+# Basic Linear LinDA
+linDAresults_pathway_signif_Current <- linDA_model$output$smoking_exposure_gaCurrent %>% 
+  filter(padj < 0.05, abs(log2FoldChange) > 0.5) %>% 
+  rownames_to_column("pathway")
+
+# DESeq2 signif results
+
+deseq2_signif_results <- picrust_DA_results_dfs$`Current/Never` %>% 
+  as_tibble() %>% 
+  filter(padj < 0.05, abs(log2FoldChange) > 0.5)
+
+# ANCOM-BC
+
+ancom2_signif_results <- ancom_res_current_never %>% 
+  filter(padj < 0.05 & abs(log2FoldChange) > 0.5)
+
+all_models_signif_pwys <- list(ALDEx2 = aldex_glinDAsmoking_signif %>% dplyr::select(pathway, Est) %>% set_names(c("pathway", "ALDEx2")), 
+                    MaAsLin2 = maaslin_signif %>% dplyr::select(feature, coef) %>% set_names(c("pathway", "MaAsLin2")), 
+                    linDA = linDAresults_pathway_signif_Current %>% dplyr::select(pathway,log2FoldChange) %>% set_names(c("pathway", "linDA")), 
+                    DESeq2 = deseq2_signif_results %>% dplyr::select(pathway, log2FoldChange) %>% set_names(c("pathway", "DESeq2")),
+                    `ANCOM-BC` = ancom2_signif_results %>% dplyr::select(pathway, log2FoldChange) %>% set_names(c("pathway", "ANCOM-BC"))
+                    ) %>% 
+  purrr::reduce(., full_join, by = "pathway")
+
+
+
+frequency_signif_pathway <- pivot_longer(all_models_signif_pwys, cols = !starts_with("pathway"), names_to = "DA_method", values_to = "da_eff_size") %>% 
+  filter(!is.na(da_eff_size)) %>% 
+  group_by(pathway) %>% 
+  tally()
+
+
+pathways_union <- all_models_signif_pwys$pathway
+
+n_methods_used <- ncol(all_models_signif_pwys) -1 
+pathways_consensus <- filter(frequency_signif_pathway, n > n_methods_used/2)$pathway
+
+pathways_intersect <- all_models_signif_pwys %>% 
+  .[complete.cases(.),] %>%
+  .$pathway
+
+dir.create("../results/DiffAbund_consensus/", recursive = TRUE, showWarnings = FALSE)
+saveRDS(pathways_union, "../results/DiffAbund_multimethod/significant_PWYs_union.RDS")
+saveRDS(pathways_intersect, "../results/DiffAbund_multimethod/significant_PWYs_intersect.RDS")
+saveRDS(pathways_consensus,  "../results/DiffAbund_multimethod/significant_PWYs_consensus.RDS")
+```
+
+### CLR Heatmap significant pathways by consensus
+
+```{r, fig.height=9, fig.width=11}
+fake_tax_table <- data.frame(pathway = rownames(picrust_pathways_matrix_Q1)) %>% set_rownames(rownames(picrust_pathways_matrix_Q1)) %>% as.matrix()
+pathways_consensus <- readRDS("../results/DiffAbund_multimethod/significant_PWYs_consensus.RDS")
+
+
+pathways_summarized_plot <- phyloseq(otu_table(picrust_pathways_matrix_Q1, taxa_are_rows = T),
+         sample_data(phy_Q1_meta), tax_table(fake_tax_table)) %>% 
+  #phy_transform("compositional") %>% 
+  filter_sample_data(aid_michigan %in% c(sample_names(phy_Q2), sample_names(phy_Q3)) | smoking_exposure_ga == "Never") %>% 
+  filter_tax_table(taxa_names(.) %in% pathways_consensus) %>% 
+  mutate_sample_data(smoking_detailed = add_N_to_catVar(smoking_detailed)) %>%
+  phy_transform("compositional") %>% 
+  phy_summarise_taxa_by_metadata(metadata_var = "smoking_detailed", .fun = mean)
+
+ggsave(plot = ggplotify::as.ggplot(pheatmap::pheatmap(pathways_summarized_plot, scale = "none", main = "Unscaled Rows", cluster_cols = FALSE, angle_col = 315)), 
+       filename = "../results/Figures/latest_figure_panels/smoking_exposure_ga/Figure4_picrust_unscaledRows.png", dpi = 600, height = 9, width = 11)
+
+# save also scaled rows for potential alternative use
+
+ggsave(plot = ggplotify::as.ggplot(pheatmap::pheatmap(pathways_summarized_plot, scale = "row", main = "Scaled Rows", cluster_cols = FALSE, angle_col = 315)), 
+       filename = "../results/Figures/latest_figure_panels/smoking_exposure_ga/Figure4_picrust_scaledRows.png", dpi = 600, height = 9, width = 11)
+
+
+```
+
+Interesting note, the CLR transformation is dependent somehow on the number of features in the table, meaning that if you subset before creating the phyloseq object to make the transformation, you end up with a correct transformation, but scaled only on those pathways you selected. In my case, this approach was masking a few signals, so my advice is: 
+  
+  - create a phyloseq object with all features (taxa, pathways, Kegg Orthology enzymes ...) (optional, I use it because the transformaton functions are implemented)
+  - re-convert into `data.frame` with either `speedyseq::psmelt()` or `phy_OtuMetaTable()`
+  - make all the plots you want
+
+
+### Consensus of methods, quick discussion
+
+```{r, include=FALSE}
+NA_value <- -5
+heatmap_plot <- ggplotify::as.ggplot(all_models_signif_pwys %>% 
+  filter(pathway %in% pathways_consensus) %>% 
+  column_to_rownames("pathway") %>% 
+  mutate_all(.funs = function(x) ifelse(is.na(x), NA_value, x)) %>% 
+  as.matrix() %>% 
+  pheatmap::pheatmap(angle_col = 315, treeheight_row = 0, treeheight_col = 9, scale = "none")
+)
+
+plot_correlations_eff.sizes <- grid::grid.grabExpr(
+  print(all_models_signif_pwys %>% 
+          filter(complete.cases(.)) %>% 
+  column_to_rownames("pathway") %>% 
+ mutate_all(.funs = function(x) ifelse(is.na(x), 0, x)) %>%
+ #as.matrix() %>%
+  GGally::ggpairs(title = "Correlations between effect sizes\nof the features identified in all methods")))
+
+venn_plot <- ggVennDiagram::ggVennDiagram(list(ALDEx2 = aldex_glinDAsmoking_signif %>% dplyr::select(pathway, Est) %>% set_names(c("pathway", "ALDEx2")), 
+                               MaAsLin2 = maaslin_signif %>% dplyr::select(feature, coef) %>% set_names(c("pathway", "MaAsLin2")), 
+                               linDA = linDAresults_pathway_signif_Current %>% dplyr::select(pathway,log2FoldChange) %>% set_names(c("pathway", "linDA")), 
+                               DESeq2 = deseq2_signif_results %>% dplyr::select(pathway, log2FoldChange) %>% set_names(c("pathway", "DESeq2"))
+                               ) %>% lapply("[[", "pathway"),set_color = "white" 
+                             
+)+ scale_fill_viridis_c(option = "C")+
+  theme(legend.position = "none")
+
+
+library(ggVennDiagram)
+
+datavenn <- list(ALDEx2 = aldex_glinDAsmoking_signif %>% dplyr::select(pathway, Est) %>% set_names(c("pathway", "ALDEx2")), 
+                               MaAsLin2 = maaslin_signif %>% dplyr::select(feature, coef) %>% set_names(c("pathway", "MaAsLin2")), 
+                               LinDA = linDAresults_pathway_signif_Current %>% dplyr::select(pathway,log2FoldChange) %>% set_names(c("pathway", "linDA")), 
+                               DESeq2 = deseq2_signif_results %>% dplyr::select(pathway, log2FoldChange) %>% set_names(c("pathway", "DESeq2"))
+                               ) %>% lapply("[[", "pathway") %>% 
+  Venn() %>% 
+  process_data()
+
+
+venn_plot <- ggplot()+
+  geom_sf(aes(fill = count), data = venn_region(datavenn)) + 
+  scale_fill_gradient2(
+    low = "white",
+    high = scales::muted("red")
+  )+
+  geom_sf(color="darkgrey", size = 2, data = ggVennDiagram::venn_setedge(datavenn))+
+  geom_sf_text(aes(label = name), color = "black", fontface = "bold", data = venn_setlabel(datavenn)) +  
+  # add a alternative region name
+  geom_sf_label(aes(label = paste0(count, "\n", round(count/sum(count)*100, 1), "%")), 
+                data = venn_region(datavenn), 
+                alpha = 0.5, label.size = NA) +  
+  theme_void()+
+  theme(legend.position = "none")
+
+```
+
+Notice that many pathways are actually highly correlated, like the quinols. let's see this in a heatmap
+
+```{r,fig.height=7, fig.width=11}
+
+signif_pathways_names <- readRDS("../results/DiffAbund_multimethod/significant_PWYs_consensus.RDS")
+
+picrust_pathways_matrix_Q1[signif_pathways_names,] %>% 
+  apply(2, function(s) s/sum(s)) %>% 
+  t() %>% 
+  stats::cor(method = "spearman") %>% 
+  pheatmap::pheatmap(show_colnames = FALSE, main = "Spearman correlation between significant pathways")
+
+```
+
+```{r, fig.height=10, fig.width=12}
+
+ggarrange(ggarrange(plot_correlations_eff.sizes, 
+                    venn_plot+
+                      scale_x_continuous(expand = expansion(mult = .2)), 
+                    
+                    nrow = 2, ncol = 1, heights = c(1,0.5)
+                    ), 
+          
+          heatmap_plot, 
+          
+          nrow = 1, ncol = 2
+          ) %>% 
+  annotate_figure(top = text_grob("Discussion of differential abundance\nresults similarity across methods", size = 16, face = "bold", color = "red2"),
+                  bottom = text_grob(paste("NAs in the heatmap were arbitrarily set to", NA_value, "in order not to fail clustering,\nwhile still keeping evident track of where a method did not return a pathway as significant"), size = 10))
+```
+
+From these results we find out that effect sizes and the number o ALDEx2 and ANCOM-BC are further away, and that LinDA, despite being considered by authors as very similar to ANCOM-BC, in our results it seems more similar to MaAsLin2, with the added value of being extremely fast. 

@@ -1,0 +1,43 @@
+"0",""
+"0","chrismb_phy_core_genus <- speedyseq::tax_glom(chrismb_phy_core, ""Genus"")"
+"2","Found more than one class ""phylo"" in cache; using the first, from namespace 'phyloseq'
+"
+"2","Also defined by ‘tidytree’
+"
+"2","Found more than one class ""phylo"" in cache; using the first, from namespace 'phyloseq'
+"
+"2","Also defined by ‘tidytree’
+"
+"2","Found more than one class ""phylo"" in cache; using the first, from namespace 'phyloseq'
+"
+"2","Also defined by ‘tidytree’
+"
+"2","Found more than one class ""phylo"" in cache; using the first, from namespace 'phyloseq'
+"
+"2","Also defined by ‘tidytree’
+"
+"2","Found more than one class ""phylo"" in cache; using the first, from namespace 'phyloseq'
+"
+"2","Also defined by ‘tidytree’
+"
+"2","Found more than one class ""phylo"" in cache; using the first, from namespace 'phyloseq'
+"
+"2","Also defined by ‘tidytree’
+"
+"2","Found more than one class ""phylo"" in cache; using the first, from namespace 'phyloseq'
+"
+"2","Also defined by ‘tidytree’
+"
+"2","Found more than one class ""phylo"" in cache; using the first, from namespace 'phyloseq'
+"
+"2","Also defined by ‘tidytree’
+"
+"2","Found more than one class ""phylo"" in cache; using the first, from namespace 'phyloseq'
+"
+"2","Also defined by ‘tidytree’
+"
+"0","taxa_names(chrismb_phy_core_genus) <- chrismb_phy_core_genus@tax_table@.Data[,6]"
+"2","Found more than one class ""phylo"" in cache; using the first, from namespace 'phyloseq'
+"
+"2","Also defined by ‘tidytree’
+"

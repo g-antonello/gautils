@@ -32,7 +32,7 @@ phy_plotTaxon_boxplot <- function(physeq,
 
   # transform otu counts
   if(!is.null(transform)){
-    physeq_transf <- gautils2::phy_transform(physeq, transform = transform)
+    physeq_transf <- phy_transform(physeq, transform = transform)
     taxa_names(physeq_transf) <- make.names(taxa_names(physeq_transf))
   }else{
     physeq_transf <- physeq

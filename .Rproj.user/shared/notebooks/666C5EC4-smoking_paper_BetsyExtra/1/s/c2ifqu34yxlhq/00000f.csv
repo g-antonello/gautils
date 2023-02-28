@@ -1,0 +1,8 @@
+"0","dplyr::select(pathways_all_phyloseq %>% phy_transform(""compositional"") %>% phy_OtuMetaTable(), all_of(pathway_names_map$original_name)) %>% cor(method = ""spearman"") %>% pheatmap::pheatmap(show_colnames = FALSE, main = ""Correlation between significant pathways"")
+"
+"2","Error in (function (cond)  : 
+  error in evaluating the argument 'x' in selecting a method for function 'cor': Problem while evaluating `all_of(pathway_names_map$original_name)`.
+[1mCaused by error in `all_of()`:[22m
+[33m![39m Can't subset elements that don't exist.
+[31m✖[39m Element `pyridoxal 5'-phosphate biosynthesis I` doesn't exist.
+"

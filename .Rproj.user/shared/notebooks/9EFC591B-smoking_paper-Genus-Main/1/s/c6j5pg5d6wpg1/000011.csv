@@ -1,0 +1,14 @@
+"0","q2_results <- readRDS(""../results/Q2/genus/DESeq2_regression/deseq_smoking_Q2_datafames.rds"") %>% "
+"0","  .$current_tobacco_g_per_day_bin5cont %>% "
+"0","  as.data.frame() %>% "
+"0","  filter(padj < 0.05)"
+"0",""
+"0","Fig2A <- phy_Q2_genus %>%"
+"0","  mutate_sample_data(smoking_detailed = as.character(add_N_to_catVar(smoking_detailed))) %>% "
+"0","  microbiome::transform(""compositional"") %>% "
+"0","  filter_tax_table(taxa_names(.) %in% q2_results$Genus) %>%"
+"0","  phy_summarise_taxa_by_metadata(""smoking_detailed"", .fun = mean) %>% "
+"0","  pheatmap::pheatmap(angle_col = 315, scale = ""row"", cluster_cols = TRUE,  treeheight_col = 15, treeheight_row = 0)"
+"2","Error in h(simpleError(msg, call)) : 
+  error in evaluating the argument 'x' in selecting a method for function 't': error in evaluating the argument 'x' in selecting a method for function 'filter_tax_table': error in evaluating the argument 'x' in selecting a method for function 'mutate_sample_data': object 'phy_Q2_genus' not found
+"

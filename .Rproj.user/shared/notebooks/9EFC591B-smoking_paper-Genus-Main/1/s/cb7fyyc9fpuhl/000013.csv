@@ -1,0 +1,43 @@
+"0","all_results_df_union <- bind_rows(filtered_list_DA_results_union, .id = ""comparison"") %>%
+  filter(padj <0.05) %>% 
+  left_join(phy_BasicStats(phy_Q1_genus, ""compositional"") %>% dplyr::rename(Genus = taxon), by = ""Genus"") %>% 
+  mutate(
+    Phylum_Genus = paste(Phylum, Genus, sep = ""__""),
+    Phylum = factor(Phylum),
+    Phylum_Genus = factor(Phylum_Genus, levels = rev(sort(unique(Phylum_Genus))))
+    ) %>% 
+  dplyr::rename(Prevalence = prevalence_compositional,
+         Contrast = comparison)
+"
+"2","Found more than one class ""phylo"" in cache; using the first, from namespace 'phyloseq'
+"
+"2","Also defined by ‘tidytree’
+"
+"2","Found more than one class ""phylo"" in cache; using the first, from namespace 'phyloseq'
+"
+"2","Also defined by ‘tidytree’
+"
+"2","Found more than one class ""phylo"" in cache; using the first, from namespace 'phyloseq'
+"
+"2","Also defined by ‘tidytree’
+"
+"2","Found more than one class ""phylo"" in cache; using the first, from namespace 'phyloseq'
+"
+"2","Also defined by ‘tidytree’
+"
+"2","Found more than one class ""phylo"" in cache; using the first, from namespace 'phyloseq'
+"
+"2","Also defined by ‘tidytree’
+"
+"2","Found more than one class ""phylo"" in cache; using the first, from namespace 'phyloseq'
+"
+"2","Also defined by ‘tidytree’
+"
+"2","Found more than one class ""phylo"" in cache; using the first, from namespace 'phyloseq'
+"
+"2","Also defined by ‘tidytree’
+"
+"2","Found more than one class ""phylo"" in cache; using the first, from namespace 'phyloseq'
+"
+"2","Also defined by ‘tidytree’
+"

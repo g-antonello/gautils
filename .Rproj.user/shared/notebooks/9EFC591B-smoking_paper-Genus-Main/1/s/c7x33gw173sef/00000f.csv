@@ -1,0 +1,40 @@
+"0","# from Bioconductor (install by running: BiocManager::install(""x"") | x = name of the package)"
+"0","# BiocManager::install(c(""DESeq2"", ""phyloseq"", ""microbiome""))"
+"0",""
+"0","#github functions"
+"0","# devtools::install_github(""bryandmartin/corncob"")"
+"0","# remotes::install_github(""g-antonello/gautils"")"
+"0","# remotes::install_github(""mikemc/speedyseq"")#"
+"0","# devtools::install_github(""gaospecial/ggvenn"")"
+"0",""
+"0","library(gautils)"
+"0","library(magrittr)"
+"2","
+Attaching package: ‘magrittr’
+
+"
+"2","The following object is masked from ‘package:purrr’:
+
+    set_names
+
+"
+"2","The following object is masked from ‘package:tidyr’:
+
+    extract
+
+"
+"0","library(ggpubr)"
+"0",""
+"0","# graphics packages"
+"0","# library(ggpubr)"
+"0","# library(magrittr)"
+"0","# # my functions"
+"0","# source(""my_personal_functions.R"")"
+"0","# "
+"0","# "
+"0","# library(speedyseq)"
+"0","theme_set(theme_light())"
+"0",""
+"0",""
+"0","chrismb_phy <- readRDS(""../input_data/05_chrismb_ONLY_NewBatch_11_2021.rds"")"
+"0",""

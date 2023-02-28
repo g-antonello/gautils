@@ -1,0 +1,6 @@
+deseq_genus_smoking_list_df %>%
+  lapply(function(i) filter(i, Genus %in% intersect_signif_genera) %>%
+           left_join(as.data.frame(tax_table(phy_Q1_genus)), by = "Genus") %>% 
+           select(Genus, log2FoldChange, lfcSE, pvalue, padj, Phylum)) %>% 
+  lapply(function(x) group_by(x, Phylum) %>% summarise(increased = sum(log2FoldChange > 0),
+                                                       decreased = sum(log2FoldChange < 0)))
