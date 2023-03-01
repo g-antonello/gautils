@@ -17,7 +17,7 @@ phy_summarise_taxa_by_metadata(physeq, metadata_var, .fun = mean)
 A \code{matrix} object with the metadata variable in columns, and taxa in rows
 }
 \description{
-Summarise taxa by metadata
+A quick dplyr function that allows to summarise (mean, median, sum, ...) all taxa for each category of a metadata column. So far tested only on discrete variables.
 }
 \examples{
 

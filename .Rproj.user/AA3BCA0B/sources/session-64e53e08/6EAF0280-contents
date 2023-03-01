@@ -226,7 +226,7 @@ taxa_names(chrismb_phy_core_genus) <- chrismb_phy_core_genus@tax_table@.Data[,6]
 
 ```
 
-## Sample exclusion criteria applied 
+## Samples available for analysis
 
 ```{r}
 
@@ -238,16 +238,23 @@ dir.create("../results/Q1/1.3_differential abundance/", recursive = TRUE, showWa
 dir.create("../results/Q1/1.4_CST/", recursive = TRUE, showWarnings = FALSE)
 
 ##############################
-# FILTER NAs in the variables of interest
+# FILTER 
+#### NAs in the variables of interest
+#### remove people who withdrew their consent
+
+withdrawn_consent <- readLines("C:/Users/gantonello/sensitive_data/CHRISMB/participants lists each study/withdrawnConsents_AIDs.txt")
 
 phy_Q1 <- chrismb_phy_core %>%
+  filter_sample_data(!(aid_chris %in% withdrawn_consent)) %>% 
   filter_sample_data(!is.na(age_cat)) %>% 
   filter_sample_data(!is.na(sex)) %>%
   filter_sample_data(!is.na(smoking_habits_rm)) %>%  
   filter_sample_data(!is.na(how_many_teeth)) %>% 
   filter_sample_data(used_antibiotics_last_3_months == "no")  
 
+# remove samples that withdrew
 
+table(phy_Q1@sam_data$aid_chris %in% withdrawn_consent)
 
 phy_Q1 <- subset_taxa(phy_Q1, taxa_sums(phy_Q1) > 0)
 
@@ -266,6 +273,154 @@ phy_Q1_meta <- meta(phy_Q1)
 
 phy_Q1_genus
 ```
+
+# Figure A0 - overnight fasting, drinking, smoking status of selected samples {.tabset}
+
+If we find out that some of these variables affect microbiome composition, it is actually an interesting note, but these samples must be taken care of
+
+```{r}
+blood_sampling_conditions_data <- readxl::read_xlsx("C:/Users/gantonello/sensitive_data/CHRISMB/Microbiome_data/mapping file generation/CHRIS_13K_blood-collection/traits.xlsx", sheet = "Traits") 
+
+# of these data, I am mostly interested in drinking non-water drinks, fasting and smoking
+
+blood_sampling_conditions_data_select <- blood_sampling_conditions_data %>% 
+  
+  select(AID, x0bc01, x0bc05, x0bc08, x0bc10, x0bc11, x0bc12) %>% 
+  mutate(x0bc10 = case_when(x0bc10 == 0 ~ 2,
+                            x0bc10 > 0 ~ 1, 
+                            TRUE ~ NA)
+         ) %>% 
+  mutate_all(.funs = as.factor) %>% 
+  set_names(c("aid_chris", "eaten_last_12h", "drank_last_8h", "drank_last_24h", "smoked_last_3h", "infection_last_10d", "self_rep_fasting"))
+
+phy_Q1_tmp <- phy_add_metadata_variables(phy_Q1, df = blood_sampling_conditions_data_select, by = "aid_chris", verbose = F)
+```
+
+## Table of who did what prior to the visit
+
+```{r}
+table1::table1(~ eaten_last_12h + drank_last_8h + drank_last_24h + smoked_last_3h + infection_last_10d + self_rep_fasting |smoking_habits_rm, data = meta(phy_Q1_tmp) %>% mutate(smoked_last_3h = as.factor(smoked_last_3h)))
+```
+
+
+## PCoA of those who smoked prior to the visit 
+
+  * 1 = yes
+  * 2 = no
+
+```{r}
+
+distance_phy_Q1 <- distance(phy_transform(phy_Q1_tmp, "compositional"), method = "bray")
+
+library(vegan)
+
+permanova_fasting_and_others <- adonis2(distance_phy_Q1 ~ drank_last_8h + eaten_last_12h + drank_last_24h + infection_last_10d + self_rep_fasting + smoked_last_3h, data = meta(phy_Q1_tmp), na.action = na.omit, by = "margin")
+
+
+as.data.frame(permanova_fasting_and_others)
+
+phy_Q1_tmp %>% 
+  mutate_sample_data(smoking_before_visit = ifelse(smoking_exposure_ga == "Current", 
+                                                   paste0(smoking_exposure_ga, "_", smoked_last_3h), 
+                                                   as.character(smoking_exposure_ga))) %>%
+  
+  phy_betaPlot(dist = distance_phy_Q1, color = "smoking_before_visit")+
+  stat_ellipse()+
+  scale_color_manual(values = ggsci::pal_futurama()(5))
+
+```
+
+There is a clear, "clockwise" gradient. And here I have only made the plot for binary "have you smoked in the last 3 hours?", but the question had a quantitative insight: "How much did you smoke?" Let's see if the gradient gets steeper
+
+```{r}
+
+phy_Q1_tmp2 <- phy_add_metadata_variables(phy_Q1_tmp, df = blood_sampling_conditions_data %>%
+  select(AID, x0bc01, x0bc05, x0bc08, x0bc10, x0bc11, x0bc12) %>% rename(aid_chris = AID), by = "aid_chris")
+
+betaPlot_cigs_before_visit <- phy_Q1_tmp2 %>% 
+  phy_tax_glom("Genus") %>%   
+  # for categorical plotting
+  #mutate_sample_data(x0bc10 = ifelse(x0bc10 == "-89", NA, x0bc10)) %>% 
+  
+  #for continuous plotting
+  mutate_sample_data(x0bc10 = ifelse(x0bc10 == "-89", NA, as.integer(x0bc10))) %>% 
+  
+  phy_betaPlot(dist = distance_phy_Q1, color = "x0bc10")+ 
+
+  #scale_color_manual(values = c("lightgray", rev(viridis::inferno(n = 9))))+
+  labs(
+    title = "N Cigarettes smoked 3 h prior to visit",
+    color = "N cigarettes declared"
+  )
+
+betaPlot_cigs_before_visit+ 
+  gghighlight::gghighlight(x0bc10 > 0)+
+  scale_color_viridis_c(begin = 1, end = 0)
+```
+
+There is a guy who declared smoking 20 cigarettes in the last 3 hours prior to the visit. This feel waaay too much. Is it the weird guy declaring 20 cigarettes per day?
+
+```{r}
+filter_sample_data(phy_Q1_tmp2, x0bc10 > 0) %>% 
+  select_sample_data(aid_chris, sex, age, sys_bp, dia_bp, BMI, x0bc10, current_tobacco_g_per_day) %>% 
+  meta() %>% 
+  mutate_if(is.numeric, .funs = round, 1) %>%
+  mutate(x0bc10 = as.integer(x0bc10)) %>% 
+  arrange(desc(x0bc10)) %>% 
+  DT::datatable(caption = "Table of individuals who smoked within 3 hours prior to the visit in Silandro. As expected, most are heavier smokers")
+```
+
+Heavy smokers are those that *HAVE DONE THE DEED*. The number of people that smoked earlier somehow are to be accounted for, since they are in the right side of the plot, which is the area where 
+
+## PCoA gradient of abundance of most prevalent genera
+
+```{r, fig.height=10, fig.width=12}
+
+tmp_phy <- phy_Q1_tmp %>% 
+  phy_tax_glom("Genus") %>%
+  phy_transform("clr") %>% 
+  mutate_sample_data(smoking_before_visit = ifelse(smoking_exposure_ga == "Current", 
+                                                   paste0(smoking_exposure_ga, "_", smoked_last_3h), 
+                                                   as.character(smoking_exposure_ga)))
+  
+ggarrange(plotlist = lapply(c("Streptococcus", "Neisseria", "Prevotella", "Veillonella"), function(taxon)
+  phy_betaPlotTaxon(physeq = tmp_phy, dist = distance_phy_Q1, taxon = taxon)
+)
+)
+
+```
+
+Neisseria, as I though, is still one of the most conserved signatures of smoking (any and also cigarettes per day), because it tends to follow the same gradient of the smoking intensity prior to the visit. I think we could consider this variable in the daily smoking intensity, but the sample size is small, and time is running out. It could be deepened in the future
+
+
+```{r}
+
+blood_sampling_conditions_data <- readxl::read_xlsx("C:/Users/gantonello/sensitive_data/CHRISMB/Microbiome_data/mapping file generation/CHRIS_13K_blood-collection/traits.xlsx", sheet = "Traits") 
+
+# of these data, I am mostly interested in drinking non-water drinks, fasting and smoking
+
+blood_sampling_conditions_data_select <- blood_sampling_conditions_data %>% 
+  select(AID, x0bc01, x0bc05, x0bc08, x0bc10, x0bc11, x0bc12) %>% 
+  mutate(x0bc10 = case_when(x0bc10 == 0 ~ 0,
+                            x0bc10 > 0 ~ 1, 
+                            TRUE ~ NA)
+         ) %>% 
+  mutate_all(.funs = as.factor) %>% 
+  set_names(c("aid_chris", "eaten_last_12h", "drank_last_8h", "drank_last_24h", "cigarettes_last_3h", "infection_last_10d", "self_rep_fasting"))
+
+phy_Q1 <- phy_add_metadata_variables(phy_Q1, df = blood_sampling_conditions_data_select, by = "aid_chris", verbose = F)
+
+distance_phy_Q1 <- distance(phy_transform(phy_Q1, "compositional"), method = "bray")
+
+library(vegan)
+
+permanova_fasting_and_others <- adonis2(distance_phy_Q1 ~ infection_last_10d + drank_last_8h + eaten_last_12h + drank_last_24h + self_rep_fasting + cigarettes_last_3h, data = meta(phy_Q1), na.action = na.omit, by = "term")
+
+
+as.data.frame(permanova_fasting_and_others)
+
+```
+
 
 # Figure A1 - Literature of Diff. Abund Genera
 
@@ -374,6 +529,13 @@ ggarrange(heatmap_ggplot_common, heatmap_ggplot_rare+ labs(y = NULL), common.leg
 
 # Figure A2 - Age, Teeth and Smoking
 
+**Figure A2: Non-independence of number of teeth and age categories in the effective CHRISMB dataset for the smoking analysis.** (A) Relationship between age and number of teeth. Numbers are reported as proportions for each age category. (B) Relationship between lifetime exposure to smoke (lifetime pack-years) and the number of teeth in only current smokers. Individuals were further split into age groups to control for age-related tooth loss. Lifetime pack years were calculated in Former and Current smokers as follows: 
+
+$$
+Lifetime~Pack\text-Year~equivalents = \frac{\frac{cigarettes}{day}}{20} \times 365~days \times years~smoked
+$$
+
+
 ```{r}
 
 Fig.S2A <- phy_Q1_meta %>% 
@@ -424,7 +586,7 @@ age_teeth_smoking
 
 Looking at the figure below, we can appreciate a mild change in mean composition (Figure A3, B), but not a major one, also supported by absence of separation of individuals in the `Current (R)` and `Current (NR)` groups.
 
-```{r, fig.height=14, fig.width=10, include=FALSE}
+```{r, fig.height=12, fig.width=12, include=FALSE}
 
 phy_Q1_genus <- phy_tax_glom(phy_Q1, level = "Genus")
 
@@ -474,7 +636,7 @@ fig1C <- ggboxplot(data = filter(df_final, oxygen != "NA"),
                       type = ggsci::pal_jco()(4)) + 
   theme(legend.position = "top") +
   stat_pvalue_manual(stat_to_plot, tip.length = 0.01) + 
-  labs(caption = " 5% FDR adjusted Wilcoxon test q-value codes:\n** < 0.05; *** < 0.001; **** < 0.0001")+ 
+  labs(caption = "Benjamini-Hochberg FDR (5%) adjusted Wilcoxon test q-value codes:\n** < 0.05; *** < 0.001; **** < 0.0001")+ 
   theme_light()+
   theme(legend.position = "none")
 
@@ -606,7 +768,21 @@ figS5
 
 ```
 
-# Figure A5 - Correlations log2FC dosage and qualitative smoking
+
+# Figure A5 - histogram of grams per day in current smokers
+
+```{r}
+phy_Q1_meta %>% 
+  filter(smoking_exposure_ga == "Current") %>% 
+  ggplot(aes(x = current_tobacco_g_per_day))+
+  geom_histogram()+
+  labs(
+    y = "Counts",
+    x = "declared grams of tobacco smoked per day (g)"
+  )
+```
+
+# Figure A6 - Correlations log2FC dosage and qualitative smoking
 
 ```{r}
 # only intersection, not union!
@@ -658,7 +834,7 @@ fig.S5
 
 ```
 
-# Figure A6 - At lowest taxonomic level, well-known peridontal pathogens are not affected by smoking
+# Figure A7 - At lowest taxonomic level, well-known peridontal pathogens are not affected by smoking
 
 ```{r, include=FALSE}
 if (!("phy_Q1_ID" %in% ls())) {
@@ -849,9 +1025,9 @@ library(vegan)
 
 betadisper_smoking_bray <- betadisper(distance_bray, group = phy_Q1@sam_data$smoking_exposure_ga)
 
-betadisper_smoking_bray_permutest <-  permutest(betadisper_smoking_bray, 999) # tukey post-hoc test
+betadisper_smoking_bray_permutest <-  permutest(betadisper_smoking_bray, 2000) # tukey post-hoc test
 
-permanova_smoking_bray <- adonis2(distance_bray ~ how_many_teeth + sex + age_cat + smoking_exposure_ga, data = meta(phy_Q1), by = "margin")
+permanova_smoking_bray <- adonis2(distance_bray ~ how_many_teeth + sex + age_cat + smoking_exposure_ga, data = meta(phy_Q1), by = "margin", permutations = 2000)
 
 as.data.frame(permanova_smoking_bray) %>% 
   set_names(c("Degr. Freedom", "Sum of Squares", "R2", "F statistic", "P-value")) %>% 
@@ -915,11 +1091,13 @@ kbl(tmp, caption = "CHRISMB read and number of different taxonomic ranks before 
 ```
 
 
-# Table A6 - Blood pressure is significantly lower in smokers
+# Table A6 - Blood pressure is significantly lower in smokers {.tabset}
+
+## Overall 
 
 ```{r}
 
-bp_model0 <- lm(sys_bp ~ age + how_many_teeth + sex + BMI + smoking_exposure_ga, data = phy_Q1_meta)
+bp_model0 <- lm(sys_bp ~ + sex + BMI + smoking_habits_rm, data = phy_Q1_meta)
 
 broom::tidy(bp_model0) %>% 
   filter(p.value < 0.05) %>% 
@@ -930,11 +1108,45 @@ broom::tidy(bp_model0) %>%
 
 ```
 
-# Table A7 - Body Mass Index is significantly higher in smokers
+## 18 - 45 years
 
 ```{r}
 
-bmi_model0 <- lm(BMI ~ age + how_many_teeth + sex + sys_bp + smoking_exposure_ga, data = phy_Q1_meta)
+bp_model0 <- lm(sys_bp ~ + sex + BMI + smoking_habits_rm, data = phy_Q1_meta %>% filter(age <= 45))
+
+broom::tidy(bp_model0) %>% 
+  filter(p.value < 0.05) %>% 
+  mutate(p.value = format(p.value, scientific = TRUE, digits = 3)) %>%
+  mutate_if(is.numeric, round, 2) %>% 
+  kbl(caption = "Blood pressure is significantly lower in current smokers younger than 45 years, after adjusting for age, sex, body mass index (BMI) and the number of teeth. We included the number of teeth in the model to account for potential hypertensive effect of poor oral health, in the context of the literature regarding blood pressure, edentulism and nitrix oxide microbial conversion in the oral cavity") %>% 
+  kable_styling()
+
+```
+
+## 46 - `r max(phy_Q1_meta$age, na.rm = T)` years
+
+```{r}
+
+bp_model0 <- lm(sys_bp ~ + sex + BMI + smoking_habits_rm + age, data = phy_Q1_meta %>% filter(age > 45))
+
+broom::tidy(bp_model0) %>% 
+  filter(p.value < 0.05) %>% 
+  mutate(p.value = format(p.value, scientific = TRUE, digits = 3)) %>%
+  mutate_if(is.numeric, round, 2) %>% 
+  kbl(caption = "Blood pressure is significantly lower in current smokers older than 45 years, after adjusting for age, sex, body mass index (BMI) and the number of teeth. We included the number of teeth in the model to account for potential hypertensive effect of poor oral health, in the context of the literature regarding blood pressure, edentulism and nitrix oxide microbial conversion in the oral cavity") %>% 
+  kable_styling()
+
+```
+
+
+# Table A7 - Body Mass Index is significantly higher in smokers
+
+
+## Overall 
+
+```{r}
+
+bmi_model0 <- lm(BMI ~ age+ how_many_teeth + sex + sys_bp + smoking_habits_rm, data = phy_Q1_meta)
 
 broom::tidy(bmi_model0) %>% 
   filter(p.value < 0.05) %>% 
@@ -944,6 +1156,38 @@ broom::tidy(bmi_model0) %>%
   kable_styling()
   
 ```
+
+## 18 - 45 years
+
+```{r}
+
+bmi_model0 <- lm(BMI ~ age+ how_many_teeth + sex + sys_bp + smoking_habits_rm, data = phy_Q1_meta %>% filter(age <= 45))
+
+broom::tidy(bmi_model0) %>% 
+  filter(p.value < 0.05) %>% 
+  mutate(p.value = format(p.value, scientific = TRUE, digits = 3)) %>% 
+  mutate_if(is.numeric, round, 2) %>% 
+  kbl(caption = "Body Mass Index (BMI) is significantly higher in current smokers, after adjusting for age, sex, systolic blood pressure and the number of teeth") %>% 
+  kable_styling()
+  
+```
+
+
+## 46 - `r max(phy_Q1_meta$age, na.rm = T)` years
+
+```{r}
+
+bmi_model0 <- lm(BMI ~ age+ how_many_teeth + sex + sys_bp + smoking_habits_rm, data = phy_Q1_meta %>% filter(age > 45))
+
+broom::tidy(bmi_model0) %>% 
+  filter(p.value < 0.05) %>% 
+  mutate(p.value = format(p.value, scientific = TRUE, digits = 3)) %>% 
+  mutate_if(is.numeric, round, 2) %>% 
+  kbl(caption = "Body Mass Index (BMI) is significantly higher in current smokers, after adjusting for age, sex, systolic blood pressure and the number of teeth") %>% 
+  kable_styling()
+
+```
+
 
 # Diagram A1 - Samples retained throughout exclusion criteria
 
