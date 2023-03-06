@@ -1,0 +1,17 @@
+"0","# ALDEx2"
+"0","aldex_glinDAsmoking_signif <- aldex.results$glm.test %>% "
+"0","  as.data.frame() %>% "
+"0","  dplyr::select(contains(""smoking_exposure_gaCurrent"")) %>% "
+"0","  dplyr::rename_all(.funs = function(x) gsub(pattern =  "".*\\:"", replacement = """", x = x)) %>% "
+"0","  rownames_to_column(""pathway"") %>% "
+"0","  as_tibble() %>% "
+"0","  filter(abs(Est) > 0.5, pval.holm < 0.05)"
+"0","  "
+"0","# MaAsLin2  "
+"0","maaslin_signif <- maaslin_results %>% "
+"0","  filter(metadata == ""smoking_exposure_ga"") %>% "
+"0","  dplyr::select(feature, value, coef, stderr, pval, qval, N.not.0) %>% "
+"0","  filter(qval < 0.05, abs(coef) > 0.5, value == ""Current"")"
+"2","Error in filter(., metadata == ""smoking_exposure_ga"") : 
+  object 'maaslin_results' not found
+"

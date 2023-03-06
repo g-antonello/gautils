@@ -1,6 +1,6 @@
 #' Glimpse into a table-like object
 #' A simple function to make a "head" of the data on both rows and column, of custom length
-#' @param x H \code{data.frame} or \code{matrix-array} object
+#' @param x An object coercible to \code{matrix} format
 #' @param nrows How many rows to print (default = 8)
 #' @param ncols How many columns to print (default = 8)
 #'
@@ -14,12 +14,13 @@
 #' qklook(iris, 5,5)
 
 qklook <- function(x, nrows=8, ncols=8){
+  x_formatted <- as(x, "matrix")
 
   if(nrows(x) < nrows){
-    nrows <- nrows(x)
+    nrows <- nrow(x)
   }
   if(ncols(x) < ncols){
-    ncols <- ncols(x)
+    ncols <- ncol(x)
   }
 
   return(x[1:nrows, 1:ncols])

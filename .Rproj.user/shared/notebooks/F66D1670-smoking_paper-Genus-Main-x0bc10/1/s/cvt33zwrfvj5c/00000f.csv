@@ -1,0 +1,36 @@
+"0","library(gtsummary)"
+"0","library(flextable)"
+"2","
+Attaching package: ‘flextable’
+
+"
+"2","The following objects are masked from ‘package:gtsummary’:
+
+    as_flextable, continuous_summary
+
+"
+"2","The following objects are masked from ‘package:ggpubr’:
+
+    border, font, rotate
+
+"
+"2","The following object is masked from ‘package:purrr’:
+
+    compose
+
+"
+"0","table1 <- tmp %>% "
+"0","  tbl_summary(by = smoking_habits_rm, "
+"0","              statistic = list(all_continuous() ~ ""{mean} ({sd})"")) %>%"
+"0","  add_p(test=list(all_continuous() ~ ""kruskal.test"","
+"0","                  all_categorical(dichotomous = FALSE) ~ ""chisq.test""), pvalue_fun = function(p) ifelse(is.na(p), """", format(p, scientific = T, digits = 2)))  %>%"
+"0","  as_flex_table() %>% "
+"0","  set_table_properties(layout = ""autofit"") %>% "
+"0","  set_caption(""Demographics of CHRISMB cohort, in South Tyrol, Italy, with respect to smoking habit. Per-column percentages were also reported in brackets. Current smokers were separated into smokers who reduced daily smoking dosage some time in the past - Current (R), and those who did not reduce - Current (NR). The whole cohort is included under the “CHRISMB” column. Abbreviations: mmHg = millimeters of mercury, kg = kilograms, m² square meters."", align_with_table = TRUE)"
+"2","Warning for variable 'N° Teeth':
+simpleWarning in stats::chisq.test(x = structure(c(4L, 4L, 3L, 4L, 4L, 4L, 4L, : Chi-squared approximation may be incorrect
+"
+"2","Warning for variable 'Gums Health':
+simpleWarning in stats::chisq.test(x = structure(c(3L, 2L, 5L, 4L, 2L, 3L, 4L, : Chi-squared approximation may be incorrect
+"
+"0","table1"

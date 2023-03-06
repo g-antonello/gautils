@@ -1,0 +1,60 @@
+"0","library(DESeq2)"
+"0","#############################################################################"
+"0",""
+"0","deseq_object_picrust <- phyloseq(otu_table(picrust_pathways_matrix_Q1, taxa_are_rows = TRUE), sample_data(phy_Q1))  %>% "
+"0","  core(detection = 10, prevalence = 0.05) %>% "
+"0","  phyloseq_to_deseq2(design = ~ sex + age_cat + how_many_teeth + smoking_exposure_ga)"
+"2","converting counts to integer mode
+"
+"2","  Note: levels of factors in the design contain characters other than
+  letters, numbers, '_' and '.'. It is recommended (but not required) to use
+  only letters, numbers, and delimiters '_' or '.', as these are safe characters
+  for column names in R. [This is a message, not a warning or an error]
+"
+"0","geom_means <- apply(counts(deseq_object_picrust), 1, function(x) exp(mean(log(x[x>0]))))"
+"0",""
+"0","# estimate size factors, important to account for library size variations"
+"0","estim_size <- estimateSizeFactors(deseq_object_picrust, geoMeans = geom_means)"
+"2","  Note: levels of factors in the design contain characters other than
+  letters, numbers, '_' and '.'. It is recommended (but not required) to use
+  only letters, numbers, and delimiters '_' or '.', as these are safe characters
+  for column names in R. [This is a message, not a warning or an error]
+"
+"0","# compute the DESeq2 glm, accounting for the estimate size factor and geometric means"
+"0",""
+"0","deseq2_results_picrust <- DESeq(estim_size, fitType = ""local"")"
+"2","using pre-existing size factors
+"
+"2","estimating dispersions
+"
+"2","gene-wise dispersion estimates
+"
+"2","mean-dispersion relationship
+"
+"2","  Note: levels of factors in the design contain characters other than
+  letters, numbers, '_' and '.'. It is recommended (but not required) to use
+  only letters, numbers, and delimiters '_' or '.', as these are safe characters
+  for column names in R. [This is a message, not a warning or an error]
+"
+"2","final dispersion estimates
+"
+"2","  Note: levels of factors in the design contain characters other than
+  letters, numbers, '_' and '.'. It is recommended (but not required) to use
+  only letters, numbers, and delimiters '_' or '.', as these are safe characters
+  for column names in R. [This is a message, not a warning or an error]
+"
+"2","fitting model and testing
+"
+"2","  Note: levels of factors in the design contain characters other than
+  letters, numbers, '_' and '.'. It is recommended (but not required) to use
+  only letters, numbers, and delimiters '_' or '.', as these are safe characters
+  for column names in R. [This is a message, not a warning or an error]
+"
+"0","picrust_DA_results_dfs <- list(""Current/Former"" = results(deseq2_results_picrust, contrast = c(""smoking_exposure_ga"",""Current"", ""Former""), "
+"0","                                                          pAdjustMethod = ""BH""),"
+"0","                               ""Current/Never"" = results(deseq2_results_picrust, contrast = c(""smoking_exposure_ga"",""Current"", ""Never""), "
+"0","                                                          pAdjustMethod = ""BH"")"
+"0","                               ) %>% "
+"0","  lapply(as.data.frame) %>% "
+"0","  lapply(rownames_to_column, ""pathway"")"
+"0",""

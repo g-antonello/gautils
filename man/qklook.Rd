@@ -8,7 +8,7 @@ A simple function to make a "head" of the data on both rows and column, of custo
 qklook(x, nrows = 8, ncols = 8)
 }
 \arguments{
-\item{x}{H \code{data.frame} or \code{matrix-array} object}
+\item{x}{An object coercible to \code{matrix} format}
 
 \item{nrows}{How many rows to print (default = 8)}
 

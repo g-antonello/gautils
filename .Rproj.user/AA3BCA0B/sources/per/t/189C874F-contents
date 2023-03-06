@@ -1,0 +1,52 @@
+#' Boxplot of a taxon
+#'
+#' Simply a wrapping function to quickly plot a taxon and fill the boxes by a variable
+#'
+#' @param physeq a phyloseq object
+#' @param y the name of the taxon you want to plot (y axis)
+#' @param x the name of the trait you want to plot (x axis)
+#' @param fill another variable you may want to fill your boxes by
+#' @param transform a transformation, all those in the phy_transform are allowed
+#'
+#' @return a ggplot2 object
+#' @export
+#'
+#' @examples
+#' data("enterotype")
+#'
+#' phy_plotTaxon_boxplot(physeq = enterotype,
+#'                      y = "Rikenella",
+#'                      x = "Enterotype",
+#'                      fill = "SeqTech",
+#'                      transform = "clr")
+#'
+
+phy_plotTaxon_boxplot <- function(physeq,
+                                  y,
+                                  x,
+                                  fill,
+                                  transform = NULL){
+
+  real_name <- y
+  easier_name <- make.names(real_name)
+
+  # transform otu counts
+  if(!is.null(transform)){
+    physeq_transf <- phy_transform(physeq, transform = transform)
+    taxa_names(physeq_transf) <- make.names(taxa_names(physeq_transf))
+  }else{
+    physeq_transf <- physeq
+  }
+
+  data_merged <- phy_OtuMetaTable(physeq_transf)
+
+  boxpl <- ggplot(data = data_merged, aes_string(x = x, y = easier_name, fill = fill))+
+    geom_boxplot()+
+    labs(title = sapply(strsplit(real_name, "(\\.|_|-)"), paste, collapse = " "),
+         caption = paste0("transformation: ", transform),
+         y = "Taxon Abundance"
+    )
+
+
+  return(boxpl)
+}

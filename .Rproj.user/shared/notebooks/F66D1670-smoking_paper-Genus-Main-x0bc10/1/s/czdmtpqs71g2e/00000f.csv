@@ -1,0 +1,92 @@
+"0","# from Bioconductor (install by running: BiocManager::install(""x"") | x = name of the package)"
+"0","# BiocManager::install(c(""DESeq2"", ""phyloseq"", ""microbiome""))"
+"0",""
+"0","#github functions"
+"0","# devtools::install_github(""bryandmartin/corncob"")"
+"0","# remotes::install_github(""g-antonello/gautils"")"
+"0","# remotes::install_github(""mikemc/speedyseq"")#"
+"0","# devtools::install_github(""gaospecial/ggvenn"")"
+"0",""
+"0","library(gautils)"
+"2","Loading required package: tidyverse
+"
+"2","── [1mAttaching core tidyverse packages[22m ───────────────────────────────────────────────────────────────────── tidyverse 2.0.0 ──
+[32m✔[39m [34mdplyr    [39m 1.1.0     [32m✔[39m [34mreadr    [39m 2.1.3
+[32m✔[39m [34mforcats  [39m 1.0.0     [32m✔[39m [34mstringr  [39m 1.5.0
+[32m✔[39m [34mggplot2  [39m 3.4.1     [32m✔[39m [34mtibble   [39m 3.1.8
+[32m✔[39m [34mlubridate[39m 1.9.1     [32m✔[39m [34mtidyr    [39m 1.3.0
+[32m✔[39m [34mpurrr    [39m 1.0.1     "
+"2","── [1mConflicts[22m ─────────────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+[31m✖[39m [34mdplyr[39m::[32mfilter()[39m masks [34mstats[39m::filter()
+[31m✖[39m [34mdplyr[39m::[32mlag()[39m    masks [34mstats[39m::lag()
+[36mℹ[39m Use the ]8;;http://conflicted.r-lib.org/conflicted package]8;; to force all conflicts to become errors"
+"2","Loading required package: phyloseq
+"
+"2","Loading required package: microbiome
+"
+"2","
+microbiome R package (microbiome.github.com)
+    
+
+
+ Copyright (C) 2011-2022 Leo Lahti, 
+    Sudarshan Shetty et al. <microbiome.github.io>
+
+"
+"2","
+Attaching package: ‘microbiome’
+
+"
+"2","The following object is masked from ‘package:ggplot2’:
+
+    alpha
+
+"
+"2","The following object is masked from ‘package:base’:
+
+    transform
+
+"
+"2","Loading required package: speedyseq
+"
+"2","
+Attaching package: ‘speedyseq’
+
+"
+"2","The following objects are masked from ‘package:phyloseq’:
+
+    filter_taxa, plot_bar, plot_heatmap, plot_tree, psmelt, tax_glom, tip_glom, transform_sample_counts
+
+"
+"2","Warning: replacing previous import ‘phyloseq::psmelt’ by ‘speedyseq::psmelt’ when loading ‘gautils’"
+"2","Warning: replacing previous import ‘phyloseq::tax_glom’ by ‘speedyseq::tax_glom’ when loading ‘gautils’"
+"0","library(magrittr)"
+"2","
+Attaching package: ‘magrittr’
+
+"
+"2","The following object is masked from ‘package:purrr’:
+
+    set_names
+
+"
+"2","The following object is masked from ‘package:tidyr’:
+
+    extract
+
+"
+"0","library(ggpubr)"
+"0",""
+"0","# graphics packages"
+"0","# library(ggpubr)"
+"0","# library(magrittr)"
+"0","# # my functions"
+"0","# source(""my_personal_functions.R"")"
+"0","# "
+"0","# "
+"0","# library(speedyseq)"
+"0","theme_set(theme_light())"
+"0",""
+"0",""
+"0","chrismb_phy <- readRDS(""../input_data/05_chrismb_ONLY_NewBatch_11_2021.rds"")"
+"0",""

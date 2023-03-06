@@ -1,0 +1,16 @@
+"0","library(kableExtra)
+"
+"2","
+Attaching package: ‘kableExtra’
+
+"
+"2","The following objects are masked from ‘package:flextable’:
+
+    as_image, footnote
+
+"
+"2","The following object is masked from ‘package:dplyr’:
+
+    group_rows
+
+"

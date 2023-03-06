@@ -1,0 +1,15 @@
+"0","#devtools::install_github(""zhouhj1994/linDA"")"
+"0","library(LinDA)"
+"2","Registered S3 method overwritten by 'rmutil':
+  method         from
+  print.response httr
+"
+"0","linDA_model <- linda(otu.tab = picrust_pathways_matrix_Q1, "
+"0","                   meta = phy_Q1_meta, formula = '~ sex +age_cat + how_many_teeth + smoking_exposure_ga', "
+"0","                   alpha = 0.05,"
+"0","                   prev.cut = 0.01, "
+"0","                   lib.cut = 1000, "
+"0","                   winsor.quan = 0.97,"
+"0","                   adaptive = T)"
+"1","Imputation approach is used.
+"

@@ -1,0 +1,44 @@
+"0",""
+"0","if(!identical(levels(phy_Q1_genus@sam_data$smoking_exposure_ga), c(""Never"", ""Former"", ""Current""))){"
+"0","  "
+"0","  phy_Q1_genus@sam_data$smoking_exposure_ga %<>% factor(levels = c(""never"", ""former"", ""current""))"
+"0","  levels(phy_Q1_genus@sam_data$smoking_exposure_ga) <- c(""Never"", ""Former"", ""Current"")"
+"0","  "
+"0","}"
+"0",""
+"0","div <- phyloseq::distance(microbiome::transform(phy_Q1_genus, ""compositional""), ""bray"")"
+"2","Found more than one class ""phylo"" in cache; using the first, from namespace 'phyloseq'
+"
+"2","Also defined by ‘tidytree’
+"
+"2","Found more than one class ""phylo"" in cache; using the first, from namespace 'phyloseq'
+"
+"2","Also defined by ‘tidytree’
+"
+"2","Found more than one class ""phylo"" in cache; using the first, from namespace 'phyloseq'
+"
+"2","Also defined by ‘tidytree’
+"
+"2","Found more than one class ""phylo"" in cache; using the first, from namespace 'phyloseq'
+"
+"2","Also defined by ‘tidytree’
+"
+"0","ord <- ordinate(physeq = phy_Q1_genus,"
+"0","                distance = div,"
+"0","                method = ""PCoA"""
+"0",")"
+"0",""
+"0","fig1A <- plot_ordination(physeq = phy_Q1_genus,"
+"0","                         ordination = ord, "
+"0","                         color = ""smoking_exposure_ga"")+ "
+"0","  labs(title = NULL)+"
+"0","  theme_light()+"
+"0","  theme(legend.position = ""bottom"")+ "
+"0","  scale_color_discrete(name = ""Smoking habit"",type = ggsci::pal_jco(""default"")(4)[c(1,2,4)])+ "
+"0","  stat_ellipse(aes(group = smoking_exposure_ga), show.legend = FALSE)+"
+"0","  guides(color = guide_legend(override.aes = list(size=3)))"
+"0",""
+"0","fig1A$labels$caption <- gsub(fig1A$labels$caption, pattern = ""\n"", replacement = ""; "")"
+"0","fig1A$labels$x <- paste0(""Principal Coordinate 1   "", strsplit(fig1A$labels$x, ""   "")[[1]][[2]])"
+"0","fig1A$labels$y <- paste0(""Principal Coordinate 2   "", strsplit(fig1A$labels$y, ""   "")[[1]][[2]])"
+"0",""
