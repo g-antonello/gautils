@@ -16,8 +16,8 @@ get_SOLAR_results <- function(out_dir, prefix = "x__"){
   result_files <- list.files(out_dir, pattern = "polygenic.out", recursive = T, full.names = T)
 
   trait_names <- list.dirs(out_dir, recursive = F) %>%
-    str_split("//",simplify = T) %>%
-    .[,2]
+    str_split("/",simplify = T) %>%
+    .[,ncol(.)]
 
   files_read <- lapply(result_files, function(x) readLines(x))
 

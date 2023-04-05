@@ -56,7 +56,7 @@ knitr::opts_chunk$set(
 library(gautils)
 library(magrittr)
 library(ggpubr)
-library(kableExtra)
+
 # graphics packages
 # library(ggpubr)
 # library(magrittr)
@@ -758,6 +758,19 @@ filter(
 ```
 
 
+```{r}
+filter(
+    df_final,
+    oxygen == "Anaerobic" &
+        aid_michigan %in% sample_names(phy_Q3_genus) &
+        years_since_quit.OR.reduced_smoking <= 20) %>% 
+    lm(value ~ years_since_quit.OR.reduced_smoking + age + how_many_teeth, data = .) %>% 
+  summary() %>% 
+  broom::tidy() %>% 
+  mutate(term = c("Intercept", "Years since quitting", "Age", "1-9 teeth", "10-19 teeth", "20+ teeth")) %>% 
+  kbl(caption = "The relative abundance of ANAEROBIC bacteria does not significantly decrease with increasing years since quitting, up to 20 years. After 20 years, it is no longer statistically associated (data not shown)", digits = 3) %>% 
+  kable_styling()
+```
 
 # {-}
 
