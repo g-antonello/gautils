@@ -30,7 +30,7 @@
 #' legend("topright", legend = c("Untransformed", transf), col = c("blue", "red"), pch = 18)
 #'
 
-phy_transform2 <- function (physeq, transform, binary_preval_thresh = 0)
+phy_transform <- function (physeq, transform, binary_preval_thresh = 0)
 {
   prevalences <- prevalence(physeq)
   ntaxa <- ntaxa(physeq)
