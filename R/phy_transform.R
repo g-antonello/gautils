@@ -30,11 +30,10 @@
 #' legend("topright", legend = c("Untransformed", transf), col = c("blue", "red"), pch = 18)
 #'
 
-phy_transform <- function (physeq, transform, binary_preval_thresh = 0) {
-
+phy_transform2 <- function (physeq, transform, binary_preval_thresh = 0)
+{
   prevalences <- prevalence(physeq)
   ntaxa <- ntaxa(physeq)
-
   if (any(prevalences < binary_preval_thresh)) {
     otu_base <- abundances(physeq)
     otu_above <- otu_base[prevalences >= binary_preval_thresh,
@@ -49,13 +48,15 @@ phy_transform <- function (physeq, transform, binary_preval_thresh = 0) {
       otu_above_transf <- apply(otu_above, 1, asinh)
     }
     if (transform == "irn") {
-      otu_above_transf <- apply(otu_above, 1, function(x) RNOmni::RankNorm(x/(sum(x))))
+      otu_above_transf <- apply(otu_above, 2, function(x) x/(sum(x))) %>%
+        apply(2, RNOmni::RankNorm)
     }
     otu_below_transf <- apply(otu_below, 1, function(x) ifelse(x >
                                                                  0, 1, 0))
-    otu_transf_ready <- cbind(otu_above_transf, otu_below_transf)[sample_names(physeq),taxa_names(physeq)]
-
-  } else {
+    otu_transf_ready <- cbind(otu_above_transf, otu_below_transf)[sample_names(physeq),
+                                                                  taxa_names(physeq)]
+  }
+  else {
     if (!(transform %in% c("asinh", "irn"))) {
       otu_transf_ready <- t(abundances(transform(physeq,
                                                  transform)))
@@ -65,19 +66,19 @@ phy_transform <- function (physeq, transform, binary_preval_thresh = 0) {
                                 asinh)
     }
     if (transform == "irn") {
-      otu_transf_ready <- apply(abundances(physeq), 1,
-                                function(x) RNOmni::RankNorm(x/(sum(x))))
+      otu_transf_ready <- apply(abundances(physeq), 2, function(x) x/(sum(x))) %>%
+        apply(2, RNOmni::RankNorm)
     }
   }
   physeq_transf <- physeq
-
-  if(taxa_are_rows(physeq)){
+  if (taxa_are_rows(physeq)) {
     otu_table(physeq_transf) <- otu_table(t(otu_transf_ready),
                                           taxa_are_rows = TRUE)
-  }else{
+  }
+  else {
     otu_table(physeq_transf) <- otu_table(otu_transf_ready,
                                           taxa_are_rows = FALSE)
   }
-
   return(physeq_transf)
 }
+
