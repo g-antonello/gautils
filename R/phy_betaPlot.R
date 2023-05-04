@@ -45,30 +45,39 @@ phy_betaPlot <- function(physeq,
                          label_centroids = TRUE) {
   # generic preparatory phase, getting data ordinated
 
-  METHODS <- c("bhjattacharyya", "bray", "canberra", "chord",
-               "divergence", "dtw", "euclidean", "fJaccard", "geodesic",
-               "hellinger", "kullback", "mahalanobis", "manhattan",
-               "maximum", "minkowski", "podani", "soergel", "wave",
-               "whittaker", "binary", "braun-blanquet", "dice", "fager",
-               "faith", "hamman", "kulczynski1", "kulczynski2", "michael",
-               "mountford", "mozley", "ochiai", "phi", "russel", "simple matching",
-               "simpson", "stiles", "tanimoto", "yule", "yule2", "cosine",
-               "hamming", "custom", "unifrac", "wunifrac")
+  if(!class(dist) == "dist"){
 
-  if (ncores > 1) {
-    par <- T
+    dist_METHODS <- c("bhjattacharyya", "bray", "canberra", "chord",
+                      "divergence", "dtw", "euclidean", "fJaccard", "geodesic",
+                      "hellinger", "kullback", "mahalanobis", "manhattan",
+                      "maximum", "minkowski", "podani", "soergel", "wave",
+                      "whittaker", "binary", "braun-blanquet", "dice", "fager",
+                      "faith", "hamman", "kulczynski1", "kulczynski2", "michael",
+                      "mountford", "mozley", "ochiai", "phi", "russel", "simple matching",
+                      "simpson", "stiles", "tanimoto", "yule", "yule2", "cosine",
+                      "hamming", "custom", "unifrac", "wunifrac")
 
-    if (Sys.info()['sysname'] == "Windows") {
-      cl <- makeCluster(ncores)
-      registerDoParallel(cl)
-    } else{
-      doParallel::registerDoParallel(cores = ncores)
+
+    if(!(dist %in% dist_METHODS)){
+      stop(paste(dist, "distance not available, choose from:", paste(dist_METHODS[1:(length(dist_METHODS) -1)], collapse = ", ")))
     }
-  } else{
-    par = F
-  }
 
-  if (class(dist) == "character") {
+    if (ncores > 1) {
+      par <- T
+
+      if (Sys.info()['sysname'] == "Windows") {
+        cl <- makeCluster(ncores)
+        registerDoParallel(cl)
+      } else{
+        doParallel::registerDoParallel(cores = ncores)
+      }
+    } else{
+      par = F
+    }
+    if(class(dist) != "character"){
+      stop("Invalid class of 'dist'")
+    }
+
     if (grepl("unifrac", dist)) {
       dist <- UniFrac(
         physeq,
@@ -84,6 +93,10 @@ phy_betaPlot <- function(physeq,
     }
 
   }
+
+  intersect_samples <- intersect(rownames(as.matrix(dist)), sample_names(physeq))
+  dist <- as.dist(as.matrix(dist)[intersect_samples,intersect_samples])
+  physeq <- filter_sample_data(physeq, sample_names(physeq) %in% intersect_samples)
 
   ord <- ordinate(physeq = physeq,
                   method = method,
@@ -207,6 +220,7 @@ phy_betaPlot <- function(physeq,
                  aes_string(x = ax1,
                             y = ax2,
                             label = color),
+                 alpha = 0.8,
                  show.legend = FALSE)
   } else {
     final_plot <- intermediate_plot
