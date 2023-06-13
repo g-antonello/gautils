@@ -86,11 +86,11 @@ phy_transform <- function (physeq, transform, binary_preval_thresh = 0){
   # step 3 - re-merge the phyloseq object
   physeq_transf <- physeq
   if (taxa_are_rows(physeq)) {
-    otu_table(physeq_transf) <- otu_table(otu_transf_ready,
+    otu_table(physeq_transf) <- otu_table(otu_transformed_final,
                                           taxa_are_rows = TRUE)
   }
   else {
-    otu_table(physeq_transf) <- otu_table(t(otu_transf_ready),
+    otu_table(physeq_transf) <- otu_table(t(otu_transformed_final),
                                           taxa_are_rows = FALSE)
   }
   return(physeq_transf)
