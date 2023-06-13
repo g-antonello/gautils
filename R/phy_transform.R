@@ -30,53 +30,67 @@
 #' legend("topright", legend = c("Untransformed", transf), col = c("blue", "red"), pch = 18)
 #'
 
-phy_transform <- function (physeq, transform, binary_preval_thresh = 0)
-{
+phy_transform <- function (physeq, transform, binary_preval_thresh = 0){
+  # step 1 - record prevalences...
   prevalences <- prevalence(physeq)
+  # ... number of taxa ...
   ntaxa <- ntaxa(physeq)
+  # ... and extract otu table
+  otu_base <- abundances(physeq) # this has taxa on
+
   if (any(prevalences < binary_preval_thresh)) {
-    otu_base <- abundances(physeq)
+
     otu_above <- otu_base[prevalences >= binary_preval_thresh,
-    ]
+                          ]
     otu_below <- otu_base[prevalences < binary_preval_thresh,
-    ]
-    if (!(transform %in% c("asinh", "irn"))) {
-      otu_above_transf <- t(transform(otu_table(otu_above,
-                                                taxa_are_rows = T), transform))
+                          ]
+
+    if (!(tolower(transform) %in% c("asinh", "arcsinh", "irn", "int"))) {
+      otu_above_transf <- transform(otu_table(otu_above,
+                                                   taxa_are_rows = T), transform)
     }
-    if (transform == "asinh") {
-      otu_above_transf <- apply(otu_above, 1, asinh)
-    }
-    if (transform == "irn") {
+    if (transform %in%c("asinh", "arcsinh")) {
       otu_above_transf <- apply(otu_above, 2, function(x) x/(sum(x))) %>%
-        apply(2, RNOmni::RankNorm)
+        asinh()
     }
-    otu_below_transf <- apply(otu_below, 1, function(x) ifelse(x >
+    if (transform %in% c("irn", "int")) {
+      otu_above_transf <- apply(otu_above, 2, function(x) x/(sum(x))) %>%
+        apply(1, RNOmni::RankNorm) %>%
+        t()
+    }
+
+    otu_below_transf <- apply(otu_below, 2, function(x) ifelse(x >
                                                                  0, 1, 0))
-    otu_transf_ready <- cbind(otu_above_transf, otu_below_transf)[sample_names(physeq),
-                                                                  taxa_names(physeq)]
+    otu_transformed_final <- rbind(otu_above_transf, otu_below_transf)[taxa_names(physeq),
+                                                                  sample_names(physeq)
+                                                                  ]
   }
-  else {
-    if (!(transform %in% c("asinh", "irn"))) {
-      otu_transf_ready <- t(abundances(transform(physeq,
-                                                 transform)))
+  else { # if there is no need to split by prevalence
+
+    if (!(tolower(transform) %in% c("asinh", "arcsinh", "irn", "int"))) {
+      otu_transformed_final <- transform(otu_table(otu_base,
+                                                taxa_are_rows = T), transform)
     }
-    if (transform == "asinh") {
-      otu_transf_ready <- apply(abundances(physeq), 1,
-                                asinh)
+    if (transform %in%c("asinh", "arcsinh")) {
+      otu_transformed_final <- apply(otu_base, 2, function(x) x/(sum(x))) %>%
+        asinh()
     }
-    if (transform == "irn") {
-      otu_transf_ready <- apply(abundances(physeq), 2, function(x) x/(sum(x))) %>%
-        apply(2, RNOmni::RankNorm)
+    if (transform %in% c("irn", "int")) {
+      otu_transformed_final <- apply(otu_base, 2, function(x) x/(sum(x))) %>%
+        apply(1, RNOmni::RankNorm) %>%
+        t()
     }
+
   }
+
+  # step 3 - re-merge the phyloseq object
   physeq_transf <- physeq
   if (taxa_are_rows(physeq)) {
-    otu_table(physeq_transf) <- otu_table(t(otu_transf_ready),
+    otu_table(physeq_transf) <- otu_table(otu_transf_ready,
                                           taxa_are_rows = TRUE)
   }
   else {
-    otu_table(physeq_transf) <- otu_table(otu_transf_ready,
+    otu_table(physeq_transf) <- otu_table(t(otu_transf_ready),
                                           taxa_are_rows = FALSE)
   }
   return(physeq_transf)
