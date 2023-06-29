@@ -16,10 +16,10 @@
 qklook <- function(x, nrows=8, ncols=8){
   x_formatted <- as(x, "matrix")
 
-  if(nrows(x) < nrows){
+  if(nrow(x) < nrows){
     nrows <- nrow(x)
   }
-  if(ncols(x) < ncols){
+  if(ncol(x) < ncols){
     ncols <- ncol(x)
   }
 
