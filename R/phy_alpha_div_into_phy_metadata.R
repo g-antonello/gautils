@@ -30,6 +30,8 @@ phy_alpha_div_into_phy_metadata <- function(physeq,
                                             verbose = FALSE
 ){
 
+  sample_names(physeq) <- paste0("tmp_",sample_names(physeq))
+
   if(is.null(raref_depth)){
     raref_depth = min(colSums(abundances(physeq)))
     if(verbose){
@@ -55,11 +57,6 @@ phy_alpha_div_into_phy_metadata <- function(physeq,
     estimate_richness(measures = measures)
   # put alpha in front of variables for ease of subsetting and variable calling in the metadata
   colnames(tmp) <- paste0("alpha_", colnames(tmp))
-
-  # remove standard error Chao1
-  if("Chao1" %in% measures){
-    tmp[["alpha_se.chao1"]] <- NULL
-  }
 
   # get variable names to merge
   alpha_df <- rownames_to_column(tmp, "IDs")

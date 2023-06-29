@@ -38,6 +38,7 @@ phy_transform <- function (physeq, transform, binary_preval_thresh = 0){
   # ... and extract otu table
   otu_base <- abundances(physeq) # this has taxa on
 
+  transform <- tolower(transform)
   # case 1: if some are required to be binarized:
   if (any(prevalences < binary_preval_thresh)) {
 
