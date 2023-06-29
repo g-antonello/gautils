@@ -38,15 +38,16 @@ phy_transform <- function (physeq, transform, binary_preval_thresh = 0){
   # ... and extract otu table
   otu_base <- abundances(physeq) # this has taxa on
 
+  # case 1: if some are required to be binarized:
   if (any(prevalences < binary_preval_thresh)) {
 
     otu_above <- otu_base[prevalences >= binary_preval_thresh,
                           ]
     otu_below <- otu_base[prevalences < binary_preval_thresh,
                           ]
-
+  # if the transformation is one of the two new ones, do the transformation
     if (!(tolower(transform) %in% c("asinh", "arcsinh", "irn", "int"))) {
-      otu_above_transf <- transform(otu_table(otu_above,
+      otu_above_transf <- abundances(otu_table(otu_above,
                                                    taxa_are_rows = T), transform)
     }
     if (transform %in%c("asinh", "arcsinh")) {
@@ -68,7 +69,7 @@ phy_transform <- function (physeq, transform, binary_preval_thresh = 0){
   else { # if there is no need to split by prevalence
 
     if (!(tolower(transform) %in% c("asinh", "arcsinh", "irn", "int"))) {
-      otu_transformed_final <- transform(otu_table(otu_base,
+      otu_transformed_final <- abundances(otu_table(otu_base,
                                                 taxa_are_rows = T), transform)
     }
     if (transform %in%c("asinh", "arcsinh")) {
