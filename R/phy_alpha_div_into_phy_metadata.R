@@ -70,6 +70,8 @@ phy_alpha_div_into_phy_metadata <- function(physeq,
   physeq_final <- phy_substitute_metadata(physeq, new_meta)
   physeq_final@sam_data$merge_by <- NULL
 
+
+  sample_names(physeq_final) <- gsub("tmp_", "", sample_names(physeq_final))
   return(physeq_final)
 }
 
