@@ -3,6 +3,7 @@
 #' This is a quick extractor of a SOLAR run results
 #'
 #' @param out_dir A \code{character} specifying the base directory of the SOLAR analysis
+#' @param prefix A \code{character} specifying the character prefix used to distinguish traits from covariates. Default is `x__`, `NULL` is allowed 
 #'
 #' @importFrom readr parse_number
 #'
