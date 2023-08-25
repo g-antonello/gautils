@@ -1,5 +1,0 @@
-"0","picrust_pathways_matrix_Q1 <- picrust_pathways_matrix[!grepl(""super"", rownames(picrust_pathways_matrix)),sample_names(phy_Q1)]
-"
-"2","Error in h(simpleError(msg, call)) : 
-  error in evaluating the argument 'physeq' in selecting a method for function 'sample_names': object 'phy_Q1' not found
-"

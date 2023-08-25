@@ -1,7 +1,0 @@
-"0",""
-"0","phy_ctrls_zymo_chrismb <- filter_sample_data(phy_ctrls_zymo, batch %in% as.character(c(1:5, 7)))"
-"0","phy_ctrls_zymo_chrismb <- subset_taxa(phy_ctrls_zymo_chrismb, taxa_sums(phy_ctrls_zymo_chrismb)>0)"
-"0",""
-"0","plot_chrismb_batches <- phy_ctrls_zymo_chrismb %>% "
-"0","  abundances(""compositional"") %>% "
-"0","  pheatmap::pheatmap(scale = ""none"", annotation_col = select(meta(phy_ctrls_zymo), batch))"

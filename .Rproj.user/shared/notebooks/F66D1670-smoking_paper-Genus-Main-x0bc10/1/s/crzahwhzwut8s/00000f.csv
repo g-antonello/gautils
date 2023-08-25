@@ -1,5 +1,0 @@
-"0"," "
-"0","table1::table1("
-"0","  ~ Sex + `Age Group` + `N° Teeth` + `Gums Health` + `Systolic BP (mmHg)` + `Diastolic BP (mmHg)` + `Body Mass Index (kg/m²)` |smoking_habits_rm, "
-"0","  data = tmp, "
-"0","  overall = ""CHRISMB"", caption = ""Demographics of CHRISMB cohort, in South Tyrol, Italy, with respect to smoking habit. Per-column percentages were also reported in brackets. Current smokers were separated into smokers who reduced daily smoking dosage some time in the past - Current (R), and those who did not reduce - Current (NR). The whole cohort is included under the “CHRISMB” column. Abbreviations: mmHg = millimeters of mercury, kg = kilograms, m² square meters."")"

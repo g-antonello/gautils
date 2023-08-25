@@ -1,6 +1,0 @@
-"0","signif_genera <- deseq_genus_smoking_list_df[1:2] %>% 
-  lapply(function(i) filter(i, padj < 0.05) %>% .$Genus)
-"
-"2","Error in deseq_genus_smoking_list_df[1:2] %>% lapply(function(i) filter(i,  : 
-  could not find function ""%>%""
-"
