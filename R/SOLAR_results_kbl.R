@@ -1,8 +1,10 @@
-#' Title
+#' Make a kable table of SOLAR results
 #'
 #' @param x An object obtained with \code{get_SOLAR_results} 
 #' @param highlight_significant \code{numeric} A heritability (h2) P-value threshold under which you would like to highlight the row
 #'
+#' @import kableExtra
+#' 
 #' @return a \code{kableExtra} object. ready to print as .html
 #' @export
 #'
