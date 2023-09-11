@@ -4,6 +4,7 @@
 #' @param highlight_significant \code{numeric} A heritability (h2) P-value threshold under which you would like to highlight the row
 #'
 #' @import kableExtra
+#' @importFrom magrittr set_rownames set_colnames
 #' 
 #' @return a \code{kableExtra} object. ready to print as .html
 #' @export
@@ -29,7 +30,9 @@ SOLAR_results_kbl <- function(x, highlight_significant = 0.05){
       Estimate2 = paste0(round(c2, 3), " (", round(c2_SE, 3), ")")
     ) %>% 
     select(trait, Estimate, h2_p, Estimate2, c2_p) %>% 
-    mutate_if(is.numeric, format.pval, digits = 2) %>% 
+    mutate_if(is.numeric, format.pval, digits = 2) %>%
+    as_tibble() %>% 
+    as.matrix() %>% 
     set_colnames(c(" ", rep(c("Estimate (Std.Err.)", "P-value"),2)))
   
   kable_basic <- kbl(x2) %>% 
