@@ -8,6 +8,8 @@ get_SOLAR_results(out_dir, prefix = "x__")
 }
 \arguments{
 \item{out_dir}{A \code{character} specifying the base directory of the SOLAR analysis}
+
+\item{prefix}{A \code{character} specifying the character prefix used in the generation of the traits. my default is `x__`, if none is used, then input `""`. This step simply remove that prefix from the trait names}
 }
 \value{
 A `data.frame` with estimates, P-values and so on
