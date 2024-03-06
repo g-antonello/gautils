@@ -7,7 +7,6 @@
 #'
 #' @return A \code{data.frame} object
 #'
-#' @importFrom base names
 #' @export
 #'
 #' @examples
