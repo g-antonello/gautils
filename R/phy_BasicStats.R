@@ -6,6 +6,8 @@
 #' @param transform Any transformation function allowed by phy_transform
 #'
 #' @return A \code{data.frame} object
+#'
+#' @importFrom base names
 #' @export
 #'
 #' @examples
@@ -30,7 +32,7 @@ phy_BasicStats <- function (physeq, transform) {
 
 
   basic_stats_tibble <- tibble(
-    names(preval),
+    base::names(preval),
     preval,
     mean_abunds,
     median_abunds,
