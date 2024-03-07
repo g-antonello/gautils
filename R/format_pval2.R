@@ -23,7 +23,7 @@
 #' format.pval2(pvalues, threshold = 0.05, scientific = FALSE)
 #' 
 
-format.pval2 <- function(p, threshold = 0.001, scientific = TRUE){
+format_pval2 <- function(p, threshold = 0.001, scientific = TRUE){
   return(
     ifelse(
       p < threshold,
