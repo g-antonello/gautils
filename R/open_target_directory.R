@@ -7,13 +7,13 @@
 #' @export
 #'
 #' @examples
-#' # in Unix (Linux or Mac)
-#' open.target.directory("/home/user/Documents/my_superImportantDoc.txt")
+#' # in Unix and Unix-like
+#' open_target_directory("/home/user/Documents/my_superImportantDoc.txt")
 #' # in Windows
-#' open.target.directory("C:/Users/user/Documents/my_superImportantDoc.txt")
+#' open_target_directory("C:/Users/user/Documents/my_superImportantDoc.txt")
 #'
 #'
-open.target.directory <- function(element_path){
+open_target_directory <- function(element_path){
 
   if (.Platform$OS.type == "windows"){
     if(!(str_sub(element_path, start = nchar(element_path), end = nchar(element_path)) == "/")){ # if the directory name given ends with "/", then we can play with it without manipulation, otherwise, we need to do some managing
