@@ -35,7 +35,7 @@ adonis_to_table <- function(adonis.out, adjR2 = TRUE, new_rownames = NA){
 
   if(adjR2){
     tmp0 <- mutate(tmp0,
-             R2.adj = RsquareAdj(R2, m = Df, n = tail(permanova_with_abx_2perHouse$Df, 1))
+             R2.adj = RsquareAdj(R2, m = Df, n = tail(adonis.out$Df, 1))
              ) %>%
       relocate(R2.adj, .after = R2)
     tmp0[nrow(tmp0)-1, "R2.adj"] <- NA
