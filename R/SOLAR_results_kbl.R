@@ -56,7 +56,7 @@ SOLAR_results_kbl <- function(x, padj_method = "BH", complete.cases = TRUE){
 
 
 
-  kable_basic <- kbl(x2) %>%
+  kable_basic <- kbl(x2, longtable = T) %>%
     kable_styling() %>%
     add_header_above(c(" " = 1, "h²" = 2, "c²" = 2))
 
