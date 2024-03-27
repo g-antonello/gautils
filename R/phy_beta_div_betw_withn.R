@@ -6,10 +6,14 @@
 #' @param dist either specify a metric (see \code{?phyloseq::distance} for more info), or pass a distance matrix either in the \code{matrix} or \code{dist} format
 #' @param variab variable to segregate beta diversity values by. must be a \code{character} with a name in the \code{physeq}'s metadata
 #' @param verbose should it print out the steps it is performing? (default is \code{FALSE})
-#' @param btwn_pairwise should a third element be calculated and appended to the results? these will be pairwise comparisons of samples in each variable level.
+#' @param btwn_pairwise should a third element be calculated and appended to the results? these will be pairwise comparisons of samples in each variable level
+#' @param returnSampleNames \code{logical}, whether pairs of ids should be returned (default = `TRUE`)
+#'
+#' @importFrom magrittr %>% %<>%
 #'
 #' @return a \code{data.frame} object containing within and between diversities based on the variable specified. "between_pairwise" are calculated as "for each level of the variable categories, find diversities of all samples belonging to it against all other samples not belonging to it".
 #' @export
+#'
 #'
 #' @examples
 #'
@@ -25,8 +29,8 @@ phy_beta_div_betw_withn <- function (physeq,
                                      dist,
                                      variab,
                                      verbose = FALSE,
-                                     btwn_pairwise = FALSE)
-{
+                                     btwn_pairwise = FALSE,
+                                     returnSampleNames = TRUE) {
   if(!(variab %in% colnames(meta(physeq)))){
     stop("Variable not in the metadata")
   }
@@ -70,25 +74,27 @@ phy_beta_div_betw_withn <- function (physeq,
     message("Extracting within-group diversities...")
   }
 
-  within_divs <-
-    lapply(split_samp_names, function(s)
-      # if the length of the vector is 1, it is impossible to get within diversities, so you might as well skip that
-      dist_upper[s$samp_names,
-                 s$samp_names] %>%
-        reshape2::melt() %>%
-        .$value %>%
-        .[complete.cases(.)]
-    )
+  within_divs <- lapply(split_samp_names, function(s)
+        # if the length of the vector is 1, it is impossible to get within diversities, so you might as well skip that
+        dist_upper[s$samp_names,
+                   s$samp_names] %>%
+          reshape2::melt()
+      ) %>%
+    lapply(function(x) x[complete.cases(x),])
 
-if (verbose) {
-  message("Extracting between-group diversities, one-vs-all")
-}
+  if (verbose) {
+    message("Extracting between-group diversities, one-vs-all")
+  }
+
 between_divs_all <-
   lapply(split_samp_names, function(s)
-    dist_upper[s$samp_names,!(colnames(dist_upper) %in% s$samp_names)] %>% reshape2::melt() %>%
-      .$value %>% .[complete.cases(.)]) %>% .[sapply(., length) !=
-                                                0]
+    dist_upper[s$samp_names,!(colnames(dist_upper) %in% s$samp_names)] %>%
+      reshape2::melt()) %>%
+  lapply(function(x) x[complete.cases(x),]) %>%
+  .[sapply(., nrow) != 0]
+
 between_divs_all <- between_divs_all[names(between_divs_all) %in% names(within_divs)]
+
 if (btwn_pairwise) {
   if (verbose) {
     message("Extracting between-group diversities, one-vs-one")
@@ -106,38 +112,57 @@ if (btwn_pairwise) {
                                                                                                  i]]]]
     between_divs_pairwise_clean <- lapply(between_divs_pairwise,
                                           function(dist)
-                                            reshape2::melt(dist) %>% .$value %>%
-                                            .[complete.cases(.)]) %>% .[sapply(., length) !=
-                                                                          0]
+                                            reshape2::melt(dist) %>%
+                                            .[complete.cases(.),]) %>%
+      .[sapply(., length) != 0]
   }
 }
 
 ## final manipulation before returning the data.frame
 if (btwn_pairwise) {
-  betadiv_results <- rbind(
+  betadiv_results <- rbind.data.frame(
     bind_rows(lapply(within_divs,
                      as.data.frame), .id = variab) %>% set_names(c(variab,
+                                                                   "Sample1",
+                                                                   "Sample2",
                                                                    "value")) %>% mutate(comparison = "within"),
     bind_rows(lapply(between_divs_all,
                      as.data.frame), .id = variab) %>% set_names(c(variab,
+                                                                   "Sample1",
+                                                                   "Sample2",
                                                                    "value")) %>% mutate(comparison = "between_all"),
     bind_rows(lapply(
       between_divs_pairwise_clean, as.data.frame
     ),
-    .id = variab) %>% set_names(c(variab, "value")) %>%
+    .id = variab) %>% set_names(c(variab,
+                                  "Sample1",
+                                  "Sample2",
+                                  "value")) %>%
       mutate(comparison = "between_pairwise")
-  ) %>%
-    as.data.frame()
+  )
 } else {
-  betadiv_results <- rbind(
-    bind_rows(lapply(within_divs,
-                     as.data.frame), .id = variab) %>% set_names(c(variab,
-                                                                   "value")) %>% mutate(comparison = "within"),
-    bind_rows(lapply(between_divs_all,
-                     as.data.frame), .id = variab) %>% set_names(c(variab,
-                                                                   "value")) %>% mutate(comparison = "between_all")
-  ) %>%
-    as.data.frame()
+
+    betadiv_results <- rbind.data.frame(
+      bind_rows(lapply(within_divs,
+                       as.data.frame), .id = variab) %>% set_names(c(variab,
+                                                                     "Sample1",
+                                                                     "Sample2",
+                                                                     "value")) %>%
+        mutate(comparison = "within"),
+      bind_rows(lapply(between_divs_all,
+                       as.data.frame), .id = variab) %>% set_names(c(variab,
+                                                                     "Sample1",
+                                                                     "Sample2",
+                                                                     "value")) %>%
+      mutate(comparison = "between_all")
+    )
+  }
+
+# final "if", asking if you want sample ID pairs back in the returned data.frame
+
+if(!returnSampleNames){
+  betadiv_results %<>% select(-Sample1, -Sample2)
 }
+
 return(betadiv_results[complete.cases(betadiv_results),])
 }

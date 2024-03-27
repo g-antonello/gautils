@@ -5,6 +5,7 @@
 #' @param x A \code{data.frame} object as retrieved as-is by `get_SOLAR_results`
 #' @param padj_method A \code{character} with the adjustment required. 'none' is also accepted and crude P-values will be kept
 #' @param complete.cases A \code{logical} saying whether you want to remove rows with 1 or more NAs. Default is `TRUE`
+#' @param escape A \code{logical}, the escape option coded in kableExtra::kbl. This should allow for cool output options in latex and html
 #'
 #' @return a \code{kbl} table, with default settings
 #' @export
@@ -14,7 +15,7 @@
 #' # No microbiome SOLAR runs were stored as data.
 #'
 
-SOLAR_results_kbl <- function(x, padj_method = "BH", complete.cases = TRUE){
+SOLAR_results_kbl <- function(x, padj_method = "BH", complete.cases = TRUE, escape = TRUE){
 
   if(complete.cases){
     x_complete <- x[complete.cases(x),]
@@ -56,7 +57,7 @@ SOLAR_results_kbl <- function(x, padj_method = "BH", complete.cases = TRUE){
 
 
 
-  kable_basic <- kbl(x2, longtable = T) %>%
+  kable_basic <- kbl(x2, longtable = T, escape = escape) %>%
     kable_styling() %>%
     add_header_above(c(" " = 1, "h²" = 2, "c²" = 2))
 

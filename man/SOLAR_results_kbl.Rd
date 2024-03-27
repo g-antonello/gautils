@@ -4,7 +4,7 @@
 \alias{SOLAR_results_kbl}
 \title{Show clean SOLAR results}
 \usage{
-SOLAR_results_kbl(x, padj_method = "BH", complete.cases = TRUE)
+SOLAR_results_kbl(x, padj_method = "BH", complete.cases = TRUE, escape = TRUE)
 }
 \arguments{
 \item{x}{A \code{data.frame} object as retrieved as-is by `get_SOLAR_results`}
@@ -12,6 +12,8 @@ SOLAR_results_kbl(x, padj_method = "BH", complete.cases = TRUE)
 \item{padj_method}{A \code{character} with the adjustment required. 'none' is also accepted and crude P-values will be kept}
 
 \item{complete.cases}{A \code{logical} saying whether you want to remove rows with 1 or more NAs. Default is `TRUE`}
+
+\item{escape}{A \code{logical}, the escape option coded in kableExtra::kbl. This should allow for cool output options in latex and html}
 }
 \value{
 a \code{kbl} table, with default settings

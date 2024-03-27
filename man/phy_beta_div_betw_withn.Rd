@@ -9,7 +9,8 @@ phy_beta_div_betw_withn(
   dist,
   variab,
   verbose = FALSE,
-  btwn_pairwise = FALSE
+  btwn_pairwise = FALSE,
+  returnSampleNames = TRUE
 )
 }
 \arguments{
@@ -21,7 +22,9 @@ phy_beta_div_betw_withn(
 
 \item{verbose}{should it print out the steps it is performing? (default is \code{FALSE})}
 
-\item{btwn_pairwise}{should a third element be calculated and appended to the results? these will be pairwise comparisons of samples in each variable level.}
+\item{btwn_pairwise}{should a third element be calculated and appended to the results? these will be pairwise comparisons of samples in each variable level}
+
+\item{returnSampleNames}{\code{logical}, whether pairs of ids should be returned (default = `TRUE`)}
 }
 \value{
 a \code{data.frame} object containing within and between diversities based on the variable specified. "between_pairwise" are calculated as "for each level of the variable categories, find diversities of all samples belonging to it against all other samples not belonging to it".
