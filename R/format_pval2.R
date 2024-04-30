@@ -28,7 +28,7 @@ format_pval2 <- function(p, threshold = 0.001, scientific = TRUE){
     ifelse(
       p < threshold,
       format.pval(p, scientific = scientific, digits = 1),
-      format.pval(p, digits = 3)
+      as.character(round(p, digits = 3))
     )
   )
 }
